@@ -37,6 +37,7 @@ import com.hazelcast.internal.metrics.metricsets.GarbageCollectionMetricSet;
 import com.hazelcast.internal.metrics.metricsets.OperatingSystemMetricSet;
 import com.hazelcast.internal.metrics.metricsets.RuntimeMetricSet;
 import com.hazelcast.internal.metrics.metricsets.ThreadMetricSet;
+import com.hazelcast.internal.networking.rdma.RdmaServiceImpl;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.partition.InternalPartitionService;
 import com.hazelcast.internal.partition.MigrationInfo;
@@ -112,6 +113,7 @@ public class NodeEngineImpl implements NodeEngine {
     private final ExecutionServiceImpl executionService;
     private final OperationServiceImpl operationService;
     private final EventServiceImpl eventService;
+    private final RdmaServiceImpl raftRdmaService;
     private final OperationParkerImpl operationParker;
     private final ClusterWideConfigurationService configurationService;
     private final TransactionManagerServiceImpl transactionManagerService;
@@ -164,6 +166,10 @@ public class NodeEngineImpl implements NodeEngine {
             serviceManager.registerService(OperationParker.SERVICE_NAME, operationParker);
             serviceManager.registerService(UserCodeDeploymentService.SERVICE_NAME, userCodeDeploymentService);
             serviceManager.registerService(ClusterWideConfigurationService.SERVICE_NAME, configurationService);
+
+            // register the RDMA service too
+            this.raftRdmaService = new RdmaServiceImpl(this);
+            serviceManager.registerService(RdmaServiceImpl.SERVICE_NAME, raftRdmaService);
         } catch (Throwable e) {
             try {
                 shutdown(true);
