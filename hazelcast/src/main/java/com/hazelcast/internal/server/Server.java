@@ -31,7 +31,7 @@ import java.util.function.Predicate;
  * Given an {@link EndpointQualifier} an {@link ServerConnectionManager} can be retrieved
  * by {@link #getConnectionManager(EndpointQualifier)} to create or get connections on that end.
  */
-public interface Server extends ConnectionListenable<ServerConnection> {
+public interface Server extends ConnectionListenable<ServerConnection>, MinimalServer {
 
     /**
      * Returns the ServerContext.
@@ -99,39 +99,5 @@ public interface Server extends ConnectionListenable<ServerConnection> {
      * @return network stats per endpoint
      */
     Map<EndpointQualifier, NetworkStats> getNetworkStats();
-
-    /**
-     * Flag indicating the liveness status of the Server
-     */
-    boolean isLive();
-
-    /**
-     * Starts the Server, initializes its endpoints, starts threads, etc.
-     * After start, Endpoints becomes fully operational.
-     * <p>
-     * If it is already started, then this method has no effect.
-     *
-     * @throws IllegalStateException if Server is shutdown
-     */
-    void start();
-
-    /**
-     * Stops the Server, releases its resources, stops threads, etc.
-     * When stopped, is can be started again by calling {@link #start()}.
-     * <p>
-     * This method has no effect if it is already stopped or shutdown.
-     * <p>
-     * Currently {@code stop} is called during the merge process to detach node from the current cluster. After
-     * node becomes ready to join to the new cluster, {@code start} is called.
-     */
-    void stop();
-
-    /**
-     * Shutdowns the Server completely.
-     * Connections and the networking engine will not be operational anymore and cannot be restarted.
-     * <p>
-     * This method has no effect if it is already shutdown.
-     */
-    void shutdown();
 
 }

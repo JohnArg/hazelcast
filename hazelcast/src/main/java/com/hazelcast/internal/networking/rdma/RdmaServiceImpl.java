@@ -94,7 +94,7 @@ public class RdmaServiceImpl implements RaftNodeLifecycleAwareService, RaftManag
     @Override
     public void shutdown(boolean terminate) {
         // Todo
-        logger.info("Shutdown called");
+        logger.info("Shutting down service.");
         if(rdmaServer != null){
             rdmaServer.shutdown();
         }

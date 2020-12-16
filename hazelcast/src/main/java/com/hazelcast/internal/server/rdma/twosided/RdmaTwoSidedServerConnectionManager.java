@@ -6,10 +6,7 @@ import com.hazelcast.internal.networking.rdma.RdmaEndpointSettings;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.nio.ConnectionListener;
 import com.hazelcast.internal.nio.Packet;
-import com.hazelcast.internal.server.NetworkStats;
-import com.hazelcast.internal.server.Server;
-import com.hazelcast.internal.server.ServerConnection;
-import com.hazelcast.internal.server.ServerConnectionManager;
+import com.hazelcast.internal.server.*;
 import com.hazelcast.internal.server.rdma.RdmaServerAcceptor;
 import com.hazelcast.internal.server.rdma.RdmaServerConnector;
 import com.hazelcast.spi.impl.NodeEngine;
@@ -28,8 +25,10 @@ import java.util.concurrent.*;
 
 /**
  * Manages the inbound RDMA connections on behalf of an RDMA server.
+ * For RDMA, connections are established through {@link com.ibm.disni.RdmaEndpoint RdmaEndpoints}
+ * instead of {@link ServerConnection ServerConnections}.
  */
-public class RdmaTwoSidedServerConnectionManager implements ServerConnectionManager {
+public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManager<RpcBasicEndpoint>{
 
     private NodeEngine engine;
     private RdmaLogger logger;
@@ -64,9 +63,7 @@ public class RdmaTwoSidedServerConnectionManager implements ServerConnectionMana
         outboundConnections = new HashMap<>();
     }
 
-    /**
-     * Will setup the server connections, but not start them. Must be called after discovering the CP members.
-     */
+    @Override
     public void setupServerConnections(Collection<CPMember> cpMembers, CPMember localCPMember){
         this.cpMembers = cpMembers;
         this.localCPMember = localCPMember;
@@ -92,6 +89,7 @@ public class RdmaTwoSidedServerConnectionManager implements ServerConnectionMana
         }
     }
 
+    @Override
     public void startConnecting(){
         rdmaServerAcceptorTask.start();
         try {
@@ -111,6 +109,7 @@ public class RdmaTwoSidedServerConnectionManager implements ServerConnectionMana
         }
     }
 
+    @Override
     public void stopAndRemoveConnections(){
         if(rdmaServerAcceptorTask != null){
             rdmaServerAcceptorTask.interrupt();
@@ -137,61 +136,12 @@ public class RdmaTwoSidedServerConnectionManager implements ServerConnectionMana
         initializeConnectionDataStructures();
     }
 
-    /* *************************************************************************
-     *   Overridden Methods
-     * *************************************************************************/
 
     @Override
-    public void addConnectionListener(ConnectionListener<ServerConnection> listener) {
-        // Todo
-    }
-
-    @NotNull
-    @Override
-    public Collection<ServerConnection> getConnections() {
-        return null;
-    }
-
-    @Override
-    public boolean register(Address remoteAddress, ServerConnection connection, int planeIndex) {
-        return false;
-    }
-
-    @Override
-    public ServerConnection get(Address address, int streamId) {
-        return null;
-    }
-
-    @Override
-    public ServerConnection getOrConnect(Address address, int streamId) {
-        return null;
-    }
-
-    @Override
-    public ServerConnection getOrConnect(Address address, boolean silent, int streamId) {
-        return null;
-    }
-
-    @Override
-    public boolean transmit(Packet packet, Address target, int streamId) {
-        // Todo
-        return false;
-    }
-
-    @Override
-    public NetworkStats getNetworkStats() {
-        return null;
-    }
-
-    @Override
-    public Server getServer() {
+    public RdmaServer<RpcBasicEndpoint> getServer() {
         return server;
     }
 
-    @Override
-    public void accept(Packet packet) {
-
-    }
 
     /* *************************************************************************
     *   Getters / Setters
@@ -203,13 +153,5 @@ public class RdmaTwoSidedServerConnectionManager implements ServerConnectionMana
 
     public void setServerEndpoint(RdmaServerEndpoint<RpcBasicEndpoint> serverEndpoint) {
         this.serverEndpoint = serverEndpoint;
-    }
-
-    public RdmaEndpointSettings getRdmaEndpointSettings() {
-        return rdmaEndpointSettings;
-    }
-
-    public void setRdmaEndpointSettings(RdmaEndpointSettings rdmaEndpointSettings) {
-        this.rdmaEndpointSettings = rdmaEndpointSettings;
     }
 }
