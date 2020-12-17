@@ -2,7 +2,7 @@ package com.hazelcast.internal.server.rdma.twosided;
 
 import com.hazelcast.cluster.Member;
 import com.hazelcast.cp.CPMember;
-import com.hazelcast.internal.networking.rdma.RdmaEndpointSettings;
+import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.server.RdmaConnectionManager;
 import com.hazelcast.internal.server.RdmaServer;
@@ -25,7 +25,7 @@ public class RdmaTwoSidedServer implements RdmaServer<RpcBasicEndpoint> {
     private AtomicBoolean isLive;
 
 
-    public RdmaTwoSidedServer(NodeEngine engine, RdmaEndpointSettings rdmaEndpointSettings) {
+    public RdmaTwoSidedServer(NodeEngine engine, RdmaConfig rdmaConfig) {
         logger = new RdmaLogger(engine.getLogger(RdmaTwoSidedServer.class));
         this.localMember = engine.getLocalMember();
 
@@ -33,11 +33,11 @@ public class RdmaTwoSidedServer implements RdmaServer<RpcBasicEndpoint> {
         // RDMA must connect to the same public ip as TCP, but in its own port
         InetSocketAddress tcpInetAddress = localMember.getSocketAddress();
         InetAddress remoteIp = tcpInetAddress.getAddress();
-        localRdmaAddress = new InetSocketAddress(remoteIp, rdmaEndpointSettings.getRdmaListeningPort());
+        localRdmaAddress = new InetSocketAddress(remoteIp, rdmaConfig.getRdmaListeningPort());
 
         // the connection manager needs to be created before the server operation thread
         this.connectionManager = new RdmaTwoSidedServerConnectionManager(engine, localRdmaAddress, this,
-                rdmaEndpointSettings);
+                rdmaConfig);
         isLive = new AtomicBoolean(false);
     }
 

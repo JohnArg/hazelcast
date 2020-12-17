@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class RdmaServiceImpl implements RaftNodeLifecycleAwareService, RaftManagedService {
     public static final String SERVICE_NAME = "hz:rdma:raft";
+    private static final String PROPERTIES_FILE = "rdma.properties";
 
     private RdmaLogger logger;
     private NodeEngine engine;
@@ -36,39 +37,34 @@ public class RdmaServiceImpl implements RaftNodeLifecycleAwareService, RaftManag
     private Collection<CPMember> cpMembers;
     private Thread membershipInfoTask;
     // rdma communications ------------------------------------------------
-    private RdmaEndpointSettings rdmaEndpointSettings;
+    private RdmaConfig rdmaConfig;
     private RdmaTwoSidedServer rdmaServer;
-
-    private final int RDMA_PORT = 3000;
-    private final int serverBacklog = 100;
-    private final int connectionRetries = 10;
-    private final int connectionRetryDelay = 500;
-    private final int timeout = 1000;
-    private final boolean polling = false;
-    private final int maxWRs = 10;
-    private final int cqSize = 10;
-    private final int maxSge = 1;
-    private final int maxBufferSize = 200;
 
 
     public RdmaServiceImpl(NodeEngine engine){
         this.engine = engine;
         this.memberListener = new RaftMemberListener();
-        this.rdmaEndpointSettings = new RdmaEndpointSettings(RDMA_PORT, connectionRetries, connectionRetryDelay,
-                timeout, polling, maxWRs, maxSge, cqSize, serverBacklog, maxBufferSize);
+        this.rdmaConfig = new RdmaConfig();
         this.membershipInfoTask = new Thread(new MembershipQueryOperation());
-        this.rdmaServer = null; // will be initialized later
     }
 
     /* *****************************************************************
      * Managing service
      * ****************************************************************/
+
     @Override
     public void init(NodeEngine nodeEngine, Properties properties) {
         // initialize fields that we couldn't in the constructor
         localMember = engine.getLocalMember();
         logger = new RdmaLogger(engine.getLogger(RdmaServiceImpl.class));
-        rdmaServer = new RdmaTwoSidedServer(engine, rdmaEndpointSettings);
+        try {
+            rdmaConfig.loadFromProperties(PROPERTIES_FILE);
+        } catch (Exception e) {
+            logger.severe("Could not load RDMA settings from properties file. " +
+                    e.getMessage() + ". Setting defaults.");
+            rdmaConfig.setDefaults();
+        }
+        rdmaServer = new RdmaTwoSidedServer(engine, rdmaConfig);
         // Register a listener for membership events fired in the CP subsystem
         // We need this to know when to create or destroy RDMA Endpoints
         raftService = (RaftService) engine.getService(RaftService.SERVICE_NAME);
@@ -100,9 +96,8 @@ public class RdmaServiceImpl implements RaftNodeLifecycleAwareService, RaftManag
         }
     }
 
-
     /* *****************************************************************
-     * Managing server/client endpoints
+     * Starting components if thi is a CP member
      * ****************************************************************/
 
     /**

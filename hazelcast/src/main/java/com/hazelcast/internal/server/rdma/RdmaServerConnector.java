@@ -2,7 +2,7 @@ package com.hazelcast.internal.server.rdma;
 
 import com.hazelcast.cluster.Member;
 import com.hazelcast.cp.CPMember;
-import com.hazelcast.internal.networking.rdma.RdmaEndpointSettings;
+import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.server.rdma.twosided.RdmaTwoSidedEndpointFactory;
 import com.hazelcast.spi.impl.NodeEngine;
@@ -24,7 +24,7 @@ public class RdmaServerConnector implements Callable<Collection<CPMember>> {
     private RdmaActiveEndpointGroup<RpcBasicEndpoint> clientEndpointGroup;
     private RdmaTwoSidedEndpointFactory clientEndpointFactory;
     private Map<String, RpcBasicEndpoint> outboundConnections;
-    private RdmaEndpointSettings settings;
+    private RdmaConfig settings;
     private Collection<CPMember> remoteMembers;
     private Collection<CPMember> successfullConnections;
     private Member localMember;
@@ -32,7 +32,7 @@ public class RdmaServerConnector implements Callable<Collection<CPMember>> {
 
     public RdmaServerConnector(NodeEngine engine, Collection<CPMember> remoteMembers,
                                Map<String, RpcBasicEndpoint> outboundConnections,
-                               RdmaEndpointSettings settings){
+                               RdmaConfig settings){
         logger = new RdmaLogger(engine.getLogger(RdmaServerConnector.class));
         this.localMember = engine.getLocalMember();
         this.remoteMembers = remoteMembers;

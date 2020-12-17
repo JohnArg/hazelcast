@@ -1,11 +1,8 @@
 package com.hazelcast.internal.server.rdma.twosided;
 
-import com.hazelcast.cluster.Address;
 import com.hazelcast.cp.CPMember;
-import com.hazelcast.internal.networking.rdma.RdmaEndpointSettings;
+import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
-import com.hazelcast.internal.nio.ConnectionListener;
-import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.server.*;
 import com.hazelcast.internal.server.rdma.RdmaServerAcceptor;
 import com.hazelcast.internal.server.rdma.RdmaServerConnector;
@@ -13,7 +10,6 @@ import com.hazelcast.spi.impl.NodeEngine;
 import com.ibm.disni.RdmaActiveEndpointGroup;
 import com.ibm.disni.RdmaServerEndpoint;
 import jarg.rdmarpc.connections.RpcBasicEndpoint;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -41,19 +37,19 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
     private FutureTask<Collection<CPMember>> rdmaServerConnectorTask;
     private Map<String, RpcBasicEndpoint> inboundConnections;
     private Map<String, RpcBasicEndpoint> outboundConnections;
-    private RdmaEndpointSettings rdmaEndpointSettings;
+    private RdmaConfig rdmaConfig;
     private Collection<CPMember> cpMembers;
     private CPMember localCPMember;
 
 
     public RdmaTwoSidedServerConnectionManager(NodeEngine engine,
                                                InetSocketAddress localRdmaAddress,
-                                               RdmaTwoSidedServer server, RdmaEndpointSettings rdmaEndpointSettings) {
+                                               RdmaTwoSidedServer server, RdmaConfig rdmaConfig) {
         this.engine = engine;
         this.logger = new RdmaLogger(engine.getLogger(RdmaTwoSidedServerConnectionManager.class));
         this.localRdmaAddress = localRdmaAddress;
         this.server = server;
-        this.rdmaEndpointSettings = rdmaEndpointSettings;
+        this.rdmaConfig = rdmaConfig;
         initializeConnectionDataStructures();
     }
 
@@ -69,21 +65,21 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
         this.localCPMember = localCPMember;
         try {
             // create the server endpoint that will accept rdma connections
-            serverEndpointGroup = new RdmaActiveEndpointGroup<>(rdmaEndpointSettings.getTimeout(),
-                    rdmaEndpointSettings.isPolling(), rdmaEndpointSettings.getMaxWRs(),
-                    rdmaEndpointSettings.getMaxSge(), rdmaEndpointSettings.getCqSize());
+            serverEndpointGroup = new RdmaActiveEndpointGroup<>(rdmaConfig.getTimeout(),
+                    rdmaConfig.isPolling(), rdmaConfig.getMaxWRs(),
+                    rdmaConfig.getMaxSge(), rdmaConfig.getCqSize());
             serverEndpointFactory = new RdmaTwoSidedServerEndpointFactory(serverEndpointGroup,
-                    rdmaEndpointSettings.getMaxBufferSize(), rdmaEndpointSettings.getMaxWRs());
+                    rdmaConfig.getMaxBufferSize(), rdmaConfig.getMaxWRs());
             serverEndpointGroup.init(serverEndpointFactory);
             serverEndpoint = serverEndpointGroup.createServerEndpoint();
             // bind server endpoint to address
-            serverEndpoint.bind(localRdmaAddress, rdmaEndpointSettings.getServerBacklog());
+            serverEndpoint.bind(localRdmaAddress, rdmaConfig.getServerBacklog());
             logger.info("server bound to address : " + localRdmaAddress.toString());
             // now we can prepare the tasks that will establish connections
             rdmaServerAcceptorTask = new Thread(new RdmaServerAcceptor(engine, serverEndpoint, inboundConnections));
             rdmaServerConnectorTask = new FutureTask<>(
                     new RdmaServerConnector(engine, cpMembers, outboundConnections,
-                    rdmaEndpointSettings));
+                            rdmaConfig));
         } catch (Exception e) {
             logger.severe(e);
         }
