@@ -31,6 +31,7 @@ import com.hazelcast.internal.metrics.MetricDescriptor;
 import com.hazelcast.internal.metrics.MetricsRegistry;
 import com.hazelcast.internal.metrics.Probe;
 import com.hazelcast.internal.metrics.StaticMetricsProvider;
+import com.hazelcast.internal.networking.rdma.RdmaService;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.partition.InternalPartition;
 import com.hazelcast.internal.partition.PartitionReplica;
@@ -108,6 +109,7 @@ class OperationRunnerImpl extends OperationRunner implements StaticMetricsProvid
     private final OperationServiceImpl operationService;
     private final Node node;
     private final NodeEngineImpl nodeEngine;
+    private RdmaService rdmaService;
 
     @Probe(name = OPERATION_METRIC_OPERATION_RUNNER_EXECUTED_OPERATIONS_COUNT, level = DEBUG)
     private final Counter executedOperationsCounter;
@@ -145,6 +147,7 @@ class OperationRunnerImpl extends OperationRunner implements StaticMetricsProvid
         this.node = operationService.node;
         this.thisAddress = node.getThisAddress();
         this.nodeEngine = operationService.nodeEngine;
+        this.rdmaService = nodeEngine.getRdmaService();
         this.outboundResponseHandler = operationService.outboundResponseHandler;
         this.staleReadOnMigrationEnabled = !node.getProperties().getBoolean(DISABLE_STALE_READ_ON_PARTITION_MIGRATION);
         this.failedBackupsCounter = failedBackupsCounter;
@@ -491,10 +494,10 @@ class OperationRunnerImpl extends OperationRunner implements StaticMetricsProvid
     private boolean ensureValidMember(Operation op) {
         if (node.clusterService.getMember(op.getCallerAddress()) != null
                 || isJoinOperation(op)
-                || isWanReplicationOperation(op)) {
+                || isWanReplicationOperation(op)
+                || rdmaService.isConnectedWithRdma(op.getCallerAddress())) {
             return true;
         }
-
         Exception error = new CallerNotMemberException(thisAddress, op.getCallerAddress(), op.getPartitionId(),
                 op.getClass().getName(), op.getServiceName());
         handleOperationError(op, error);

@@ -1,5 +1,6 @@
 package com.hazelcast.internal.networking.rdma;
 
+import com.hazelcast.cluster.Address;
 import com.hazelcast.cluster.Member;
 import com.hazelcast.cp.CPGroupId;
 import com.hazelcast.cp.CPMember;
@@ -8,13 +9,15 @@ import com.hazelcast.cp.event.CPMembershipListener;
 import com.hazelcast.cp.internal.RaftNodeLifecycleAwareService;
 import com.hazelcast.cp.internal.RaftService;
 import com.hazelcast.cp.internal.datastructures.spi.RaftManagedService;
+import com.hazelcast.internal.serialization.InternalSerializationService;
 import com.hazelcast.internal.server.rdma.twosided.RdmaTwoSidedServer;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.spi.impl.InternalCompletableFuture;
 import com.hazelcast.spi.impl.NodeEngine;
+import com.hazelcast.spi.impl.NodeEngineImpl;
+import com.hazelcast.spi.impl.operationservice.Operation;
 
-import java.util.Collection;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -25,27 +28,33 @@ import java.util.concurrent.TimeUnit;
  * The service is meant to be registered in a {@link com.hazelcast.spi.impl.NodeEngine} and listen to
  * membership changes.
  */
-public class RdmaServiceImpl implements RaftNodeLifecycleAwareService, RaftManagedService {
+public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareService, RaftManagedService {
     public static final String SERVICE_NAME = "hz:rdma:raft";
     private static final String PROPERTIES_FILE = "rdma.properties";
 
     private RdmaLogger logger;
-    private NodeEngine engine;
+    private NodeEngineImpl engine;
     private RaftService raftService;
     private Member localMember;
     private RaftMemberListener memberListener;
     private Collection<CPMember> cpMembers;
     private Thread membershipInfoTask;
+    private final InternalSerializationService serializationService;
+    private Map<RdmaServiceState, List<RdmaServiceListener>> eventListeners;
     // rdma communications ------------------------------------------------
     private RdmaConfig rdmaConfig;
     private RdmaTwoSidedServer rdmaServer;
+    private RdmaServiceState serviceState;
 
 
-    public RdmaServiceImpl(NodeEngine engine){
+    public RdmaServiceImpl(NodeEngineImpl engine){
         this.engine = engine;
         this.memberListener = new RaftMemberListener();
         this.rdmaConfig = new RdmaConfig();
         this.membershipInfoTask = new Thread(new MembershipQueryOperation());
+        serializationService = (InternalSerializationService) engine.getSerializationService();
+        eventListeners = new HashMap<>();
+        serviceState = RdmaServiceState.SERVICE_NOT_READY;
     }
 
     /* *****************************************************************
@@ -64,7 +73,7 @@ public class RdmaServiceImpl implements RaftNodeLifecycleAwareService, RaftManag
                     e.getMessage() + ". Setting defaults.");
             rdmaConfig.setDefaults();
         }
-        rdmaServer = new RdmaTwoSidedServer(engine, rdmaConfig);
+        rdmaServer = new RdmaTwoSidedServer(engine, engine.getPacketDispatcher(), serializationService, rdmaConfig);
         // Register a listener for membership events fired in the CP subsystem
         // We need this to know when to create or destroy RDMA Endpoints
         raftService = (RaftService) engine.getService(RaftService.SERVICE_NAME);
@@ -84,20 +93,76 @@ public class RdmaServiceImpl implements RaftNodeLifecycleAwareService, RaftManag
     @Override
     public void reset() {
         // Todo
+        setState(RdmaServiceState.SERVICE_NOT_READY);
         logger.info("Reset called");
     }
 
     @Override
     public void shutdown(boolean terminate) {
-        // Todo
         logger.info("Shutting down service.");
+        // change state and tell everyone that uses this service that you'll shut down
+        setState(RdmaServiceState.SERVICE_SHUTDOWN);
+        // terminate the server
         if(rdmaServer != null){
             rdmaServer.shutdown();
         }
     }
 
+    @Override
+    public boolean send(Operation op, Address target) {
+        return rdmaServer.send(op, target);
+    }
+
     /* *****************************************************************
-     * Starting components if thi is a CP member
+     * Manage listeners to this service's events (Observer Pattern)
+     * ****************************************************************/
+
+    @Override
+    public boolean registerListener(RdmaServiceState eventType, RdmaServiceListener listener) {
+        List<RdmaServiceListener> listeners = eventListeners.get(eventType);
+        if(listeners == null){
+            listeners = new ArrayList<>();
+            eventListeners.put(eventType, listeners);
+            return listeners.add(listener);
+        }
+        return eventListeners.get(eventType).add(listener);
+    }
+
+    @Override
+    public boolean removeListener(RdmaServiceState eventType, RdmaServiceListener listener){
+        List<RdmaServiceListener> listeners = eventListeners.get(eventType);
+        if(listeners == null){
+            return false;
+        }
+        return eventListeners.get(eventType).remove(listener);
+    }
+
+    @Override
+    public void notifyListeners(RdmaServiceState eventType) {
+        List<RdmaServiceListener> listeners = eventListeners.get(eventType);
+        if(listeners == null){
+            return;
+        }
+        eventListeners.get(eventType).forEach(listener -> listener.update(eventType));
+    }
+
+    /* *****************************************************************
+     * Manage the service's state
+     * ****************************************************************/
+
+    @Override
+    public RdmaServiceState getLatestState() {
+        return serviceState;
+    }
+
+    @Override
+    public void setState(RdmaServiceState newState){
+        serviceState = newState;
+        notifyListeners(newState);
+    }
+
+    /* *****************************************************************
+     * Starting components if this is a CP member
      * ****************************************************************/
 
     /**
@@ -135,6 +200,10 @@ public class RdmaServiceImpl implements RaftNodeLifecycleAwareService, RaftManag
         }
     }
 
+    @Override
+    public boolean isConnectedWithRdma(Address address){
+        return rdmaServer.getConnectionManager().isConnectedWithRdma(address);
+    }
 
     /* *****************************************************************
      *  Listening for events

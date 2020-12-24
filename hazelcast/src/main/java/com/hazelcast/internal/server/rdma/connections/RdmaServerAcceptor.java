@@ -1,17 +1,15 @@
-package com.hazelcast.internal.server.rdma;
+package com.hazelcast.internal.server.rdma.connections;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
+import com.hazelcast.internal.server.RdmaConnectionManager;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.ibm.disni.RdmaServerEndpoint;
 import jarg.rdmarpc.connections.RpcBasicEndpoint;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * Will accept RDMA connections on a different thread and store
@@ -21,16 +19,20 @@ public class RdmaServerAcceptor implements Runnable{
 
     private boolean terminate;
     private RdmaServerEndpoint<RpcBasicEndpoint> serverEndpoint;
-    private Map<String, RpcBasicEndpoint> inboundConnections;
+    private Map<String, RdmaServerConnection> inboundConnections;
+    private NodeEngine engine;
+    RdmaConnectionManager<RpcBasicEndpoint> connectionManager;
     private RdmaLogger logger;
 
-    public RdmaServerAcceptor(NodeEngine engine,
+    public RdmaServerAcceptor(NodeEngine engine, RdmaConnectionManager<RpcBasicEndpoint> connectionManager,
                               RdmaServerEndpoint<RpcBasicEndpoint> serverEndpoint,
-                              Map<String, RpcBasicEndpoint> inboundConnections){
-        terminate = false;
+                              Map<String, RdmaServerConnection> inboundConnections){
+        this.terminate = false;
         this.serverEndpoint = serverEndpoint;
         this.inboundConnections = inboundConnections;
-        logger = new RdmaLogger(engine.getLogger(RdmaServerAcceptor.class));
+        this.engine = engine;
+        this.connectionManager = connectionManager;
+        this.logger = new RdmaLogger(engine.getLogger(RdmaServerAcceptor.class));
     }
 
     @Override
@@ -40,8 +42,9 @@ public class RdmaServerAcceptor implements Runnable{
             try {
                 RpcBasicEndpoint remoteEndpoint = serverEndpoint.accept();
                 InetSocketAddress remoteAddress = (InetSocketAddress) remoteEndpoint.getDstAddr();
-                inboundConnections.put(remoteAddress.getAddress().toString(),
-                        remoteEndpoint);
+                RdmaServerConnection serverConnection = new RdmaServerConnection(engine, remoteEndpoint,
+                        connectionManager, new Address(remoteAddress));
+                inboundConnections.put(remoteAddress.getAddress().toString(), serverConnection);
                 logger.info("Accepted the connection from " + remoteAddress.toString());
             }catch (IOException e) {
                 logger.info("Server cannot accept client connections or has " +

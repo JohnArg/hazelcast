@@ -37,6 +37,7 @@ import com.hazelcast.internal.metrics.metricsets.GarbageCollectionMetricSet;
 import com.hazelcast.internal.metrics.metricsets.OperatingSystemMetricSet;
 import com.hazelcast.internal.metrics.metricsets.RuntimeMetricSet;
 import com.hazelcast.internal.metrics.metricsets.ThreadMetricSet;
+import com.hazelcast.internal.networking.rdma.RdmaService;
 import com.hazelcast.internal.networking.rdma.RdmaServiceImpl;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.partition.InternalPartitionService;
@@ -133,6 +134,7 @@ public class NodeEngineImpl implements NodeEngine {
             this.concurrencyDetection = newConcurrencyDetection();
             this.loggingService = node.loggingService;
             this.logger = node.getLogger(NodeEngine.class.getName());
+            this.raftRdmaService = new RdmaServiceImpl(this);
             this.metricsRegistry = newMetricRegistry(node);
             this.proxyService = new ProxyServiceImpl(this);
             this.serviceManager = new ServiceManagerImpl(this);
@@ -162,14 +164,12 @@ public class NodeEngineImpl implements NodeEngine {
             this.splitBrainProtectionService = new SplitBrainProtectionServiceImpl(this);
             this.diagnostics = newDiagnostics();
             this.splitBrainMergePolicyProvider = new SplitBrainMergePolicyProvider(this);
+            serviceManager.registerService(RdmaServiceImpl.SERVICE_NAME, raftRdmaService);
             serviceManager.registerService(OperationServiceImpl.SERVICE_NAME, operationService);
             serviceManager.registerService(OperationParker.SERVICE_NAME, operationParker);
             serviceManager.registerService(UserCodeDeploymentService.SERVICE_NAME, userCodeDeploymentService);
             serviceManager.registerService(ClusterWideConfigurationService.SERVICE_NAME, configurationService);
 
-            // register the RDMA service too
-            this.raftRdmaService = new RdmaServiceImpl(this);
-            serviceManager.registerService(RdmaServiceImpl.SERVICE_NAME, raftRdmaService);
         } catch (Throwable e) {
             try {
                 shutdown(true);
@@ -340,6 +340,11 @@ public class NodeEngineImpl implements NodeEngine {
     @Override
     public TransactionManagerService getTransactionManagerService() {
         return transactionManagerService;
+    }
+
+    @Override
+    public RdmaService getRdmaService() {
+        return raftRdmaService;
     }
 
     @Override

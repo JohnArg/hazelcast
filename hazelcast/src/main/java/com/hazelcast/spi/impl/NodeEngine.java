@@ -21,6 +21,7 @@ import com.hazelcast.cluster.Member;
 import com.hazelcast.config.Config;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.internal.cluster.ClusterService;
+import com.hazelcast.internal.networking.rdma.RdmaService;
 import com.hazelcast.internal.serialization.SerializationService;
 import com.hazelcast.internal.services.ManagedService;
 import com.hazelcast.logging.ILogger;
@@ -71,6 +72,8 @@ public interface NodeEngine {
     SplitBrainProtectionService getSplitBrainProtectionService();
 
     SqlServiceImpl getSqlService();
+
+    RdmaService getRdmaService();
 
     /**
      * Gets the TransactionManagerService.

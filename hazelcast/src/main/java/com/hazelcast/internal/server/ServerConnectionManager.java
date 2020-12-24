@@ -31,7 +31,7 @@ import java.util.function.Predicate;
  * Responsible for managing {@link ServerConnection} instances.
  */
 public interface ServerConnectionManager
-        extends ConnectionListenable<ServerConnection>, Consumer<Packet> {
+        extends ConnectionListenable<ServerConnection>, Consumer<Packet>, MinimalServerConnectionManager{
 
     /**
      * Returns all connections managed by this ServerConnectionManager.
@@ -169,35 +169,6 @@ public interface ServerConnectionManager
      * @return the existing connection
      */
     ServerConnection getOrConnect(Address address, boolean silent, int streamId);
-
-    /**
-     * Transmits a packet to a certain address.
-     * <p>
-     * If the connection to the target doesn't exist yet, the system will try to make the connection. In this case
-     * true can be returned, even though the connection eventually can't be established.
-     *
-     * @param packet The Packet to transmit.
-     * @param target The address of the target machine where the Packet should be transmitted.
-     * @return true if the transmit was a success, false if a failure.
-     * @throws NullPointerException if packet or target is null.
-     */
-    default boolean transmit(Packet packet, Address target) {
-        return transmit(packet, target, 0);
-    }
-
-    /**
-     * Transmits a packet to a certain address.
-     * <p>
-     * If the connection to the target doesn't exist yet, the system will try to make the connection. In this case
-     * true can be returned, even though the connection eventually can't be established.
-     *
-     * @param packet The Packet to transmit.
-     * @param target The address of the target machine where the Packet should be transmitted.
-     * @param streamId the stream id
-     * @return true if the transmit was a success, false if a failure.
-     * @throws NullPointerException if packet or target is null.
-     */
-    boolean transmit(Packet packet, Address target, int streamId);
 
     /**
      * Returns network stats for inbound and outbound traffic.

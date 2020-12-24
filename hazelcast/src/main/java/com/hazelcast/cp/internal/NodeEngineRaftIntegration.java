@@ -44,6 +44,10 @@ import com.hazelcast.cp.internal.raft.impl.dto.VoteResponse;
 import com.hazelcast.cp.internal.raftop.NotifyTermChangeOp;
 import com.hazelcast.cp.internal.raftop.snapshot.RestoreSnapshotOp;
 import com.hazelcast.cp.internal.util.PartitionSpecificRunnableAdaptor;
+import com.hazelcast.internal.networking.rdma.RdmaService;
+import com.hazelcast.internal.networking.rdma.RdmaServiceState;
+import com.hazelcast.internal.networking.rdma.RdmaServiceListener;
+import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.cluster.Address;
 import com.hazelcast.spi.impl.InternalCompletableFuture;
@@ -70,7 +74,7 @@ import static com.hazelcast.cp.internal.raft.impl.RaftNodeStatus.TERMINATED;
  * committed Raft operations.
  */
 @SuppressWarnings("checkstyle:classfanoutcomplexity")
-final class NodeEngineRaftIntegration implements RaftIntegration {
+final class NodeEngineRaftIntegration implements RaftIntegration{
 
     /**
      * !!! ONLY FOR INTERNAL USAGE AND TESTING !!!
@@ -90,6 +94,9 @@ final class NodeEngineRaftIntegration implements RaftIntegration {
     private final int partitionId;
     private final int threadId;
     private final boolean linearizableReadOptimizationEnabled;
+    // Rdma related --------------------
+    private RdmaService rdmaService;
+    private RdmaLogger rdmaLogger;
 
     NodeEngineRaftIntegration(NodeEngineImpl nodeEngine, CPGroupId groupId, RaftEndpoint localCPMember, int partitionId) {
         this.nodeEngine = nodeEngine;
@@ -104,6 +111,8 @@ final class NodeEngineRaftIntegration implements RaftIntegration {
         this.taskScheduler = nodeEngine.getExecutionService().getGlobalTaskScheduler();
         this.linearizableReadOptimizationEnabled = nodeEngine.getProperties()
                                                              .getBoolean(RAFT_LINEARIZABLE_READ_OPTIMIZATION_ENABLED);
+        this.rdmaService = nodeEngine.getRdmaService();
+        this.rdmaLogger = new RdmaLogger(nodeEngine.getLogger(NodeEngineRaftIntegration.class));
     }
 
     @Override
@@ -265,6 +274,11 @@ final class NodeEngineRaftIntegration implements RaftIntegration {
         }
 
         operation.setTargetEndpoint(target).setPartitionId(partitionId);
+
+        if(rdmaService.getLatestState().equals(RdmaServiceState.CONNECTIONS_READY)){
+            rdmaLogger.info("Sending with RDMA");
+            return rdmaService.send(operation, targetMember.getAddress());
+        }
         return operationService.send(operation, targetMember.getAddress());
     }
 
