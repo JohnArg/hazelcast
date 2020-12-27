@@ -33,27 +33,4 @@ public interface RdmaService {
      * @return true if there is an RDMA connection, false otherwise.
      */
     boolean isConnectedWithRdma(Address address);
-
-    /* *****************************************************************
-     * Manage listeners to this service's events (Observer Pattern)
-     * ****************************************************************/
-
-    /**
-     * Register a listener for events on the {@link RdmaService}
-     * @return true on success, false on failure
-     */
-    boolean registerListener(RdmaServiceState eventType, RdmaServiceListener listener);
-
-    /**
-     * Remove a registered event listener.
-     * @return true on success, false on failure
-     */
-    boolean removeListener(RdmaServiceState eventType, RdmaServiceListener listener);
-
-    /**
-     * Notify the registered listeners about an event. This a <i>push</i> implementation
-     * of sending notifications.
-     */
-    void notifyListeners(RdmaServiceState eventType);
-
 }

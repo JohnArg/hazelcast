@@ -128,39 +128,6 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
     }
 
     /* *****************************************************************
-     * Manage listeners to this service's events (Observer Pattern)
-     * ****************************************************************/
-
-    @Override
-    public boolean registerListener(RdmaServiceState eventType, RdmaServiceListener listener) {
-        List<RdmaServiceListener> listeners = eventListeners.get(eventType);
-        if(listeners == null){
-            listeners = new ArrayList<>();
-            eventListeners.put(eventType, listeners);
-            return listeners.add(listener);
-        }
-        return eventListeners.get(eventType).add(listener);
-    }
-
-    @Override
-    public boolean removeListener(RdmaServiceState eventType, RdmaServiceListener listener){
-        List<RdmaServiceListener> listeners = eventListeners.get(eventType);
-        if(listeners == null){
-            return false;
-        }
-        return eventListeners.get(eventType).remove(listener);
-    }
-
-    @Override
-    public void notifyListeners(RdmaServiceState eventType) {
-        List<RdmaServiceListener> listeners = eventListeners.get(eventType);
-        if(listeners == null){
-            return;
-        }
-        eventListeners.get(eventType).forEach(listener -> listener.update(eventType));
-    }
-
-    /* *****************************************************************
      * Manage the service's state
      * ****************************************************************/
 
@@ -172,7 +139,6 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
     @Override
     public void setState(RdmaServiceState newState){
         serviceState = newState;
-        notifyListeners(newState);
     }
 
     /* *****************************************************************
