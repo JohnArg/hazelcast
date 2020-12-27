@@ -23,6 +23,11 @@ public interface RdmaService {
     void setState(RdmaServiceState newState);
 
     /**
+     * Get the latest state of the service.
+     */
+    RdmaServiceState getLatestState();
+
+    /**
      * Check if there is an RDMA connection towards this address.
      * @param address the address to check against.
      * @return true if there is an RDMA connection, false otherwise.
@@ -51,9 +56,4 @@ public interface RdmaService {
      */
     void notifyListeners(RdmaServiceState eventType);
 
-    /**
-     * Get the latest state of the service.
-     * Used for <i>pull</i> based notifications.
-     */
-    RdmaServiceState getLatestState();
 }

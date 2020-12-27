@@ -30,6 +30,22 @@ public class RdmaConfig {
      * to connect.
      */
     public static final int DEFAULT_CONNECTION_RETRY_DELAY = 500;
+    /**
+     * How much time to wait until the discovery process through non-RDMA methods
+     * is complete.
+     * Used when members discover each other with other methods than RDMA, before
+     * starting RDMA communications.
+     */
+    public static final int DEFAULT_DISCOVERY_TIMEOUT = 5000;
+    /**
+     * How many times to ask the CP subsystem which are the CP members.
+     * Used when RDMA communications are implemented only for the CP members
+     * and the {@link RdmaService} has to query the
+     * {@link com.hazelcast.cp.internal.RaftService RaftService}
+     * which are the CP members. Because exceptions might be thrown, the process
+     * will be attempted a specified number of retries.
+     */
+    public static final int DEFAULT_CP_DISCOVERY_RETRIES = 5;
 
     /**
      * Endpoint timeout (DiSNI property).
@@ -57,12 +73,15 @@ public class RdmaConfig {
     public static final int DEFAULT_MAX_BUFFER_SIZE = 200;
 
     /* ********************************************************
-     *   Configurable Parameters
+     *   Configurable Parameters - Each is associated with a
+     *   default value above.
      * ********************************************************/
 
     private int rdmaListeningPort;
     private int connectionRetries;
     private int connectionRetryDelay;   // sleep for this amount of time
+    private int discoveryTimeout;
+    private int cpDiscoveryRetries;
     private int timeout;
     private boolean polling;
     private int maxWRs;
@@ -79,11 +98,13 @@ public class RdmaConfig {
     public RdmaConfig(){ }
 
     public RdmaConfig(int listeningPort, int connectionRetries, int connectionRetryDelay,
-                      int timeout, boolean polling, int maxWRs,
+                      int discoveryTimeout, int cpDiscoveryRetries, int timeout, boolean polling, int maxWRs,
                       int maxSge, int cqSize, int serverBacklog, int maxBufferSize) {
         this.rdmaListeningPort = listeningPort;
         this.connectionRetries = connectionRetries;
         this.connectionRetryDelay = connectionRetryDelay;
+        this.discoveryTimeout = discoveryTimeout;
+        this.cpDiscoveryRetries = cpDiscoveryRetries;
         this.timeout = timeout;
         this.polling = polling;
         this.maxWRs = maxWRs;
@@ -100,6 +121,8 @@ public class RdmaConfig {
         rdmaListeningPort = DEFAULT_RDMA_PORT;
         connectionRetries = DEFAULT_CONNECTION_RETRIES;
         connectionRetryDelay = DEFAULT_CONNECTION_RETRY_DELAY;
+        discoveryTimeout = DEFAULT_DISCOVERY_TIMEOUT;
+        cpDiscoveryRetries = DEFAULT_CP_DISCOVERY_RETRIES;
         timeout = DEFAULT_TIMEOUT;
         polling = DEFAULT_POLLING;
         maxWRs = DEFAULT_MAX_WRS;
@@ -122,6 +145,8 @@ public class RdmaConfig {
         rdmaListeningPort = Integer.parseInt(properties.getProperty("rdma.listeningPort"));
         connectionRetries = Integer.parseInt(properties.getProperty("rdma.connectionRetries"));
         connectionRetryDelay = Integer.parseInt(properties.getProperty("rdma.connectionRetryDelay"));
+        discoveryTimeout = Integer.parseInt(properties.getProperty("rdma.discoveryTimeout"));
+        cpDiscoveryRetries = Integer.parseInt(properties.getProperty("rdma.cpDiscoveryRetries"));
         timeout = Integer.parseInt(properties.getProperty("rdma.timeout"));
         polling = Boolean.parseBoolean(properties.getProperty("rdma.polling"));
         maxWRs = Integer.parseInt(properties.getProperty("rdma.maxWRs"));
@@ -172,12 +197,22 @@ public class RdmaConfig {
         return connectionRetryDelay;
     }
 
+    public int getDiscoveryTimeout() {
+        return discoveryTimeout;
+    }
+
+    public int getCpDiscoveryRetries() {
+        return cpDiscoveryRetries;
+    }
+
     @Override
     public String toString() {
-        return "RdmaEndpointSettings{" +
+        return "RdmaConfig{" +
                 "rdmaListeningPort=" + rdmaListeningPort +
                 ", connectionRetries=" + connectionRetries +
                 ", connectionRetryDelay=" + connectionRetryDelay +
+                ", discoveryTimeout=" + discoveryTimeout +
+                ", cpDiscoveryRetries=" + cpDiscoveryRetries +
                 ", timeout=" + timeout +
                 ", polling=" + polling +
                 ", maxWRs=" + maxWRs +

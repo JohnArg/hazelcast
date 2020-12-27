@@ -39,7 +39,7 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
     private RaftMemberListener memberListener;
     private Collection<CPMember> cpMembers;
     private Thread membershipInfoTask;
-    private final InternalSerializationService serializationService;
+    private InternalSerializationService serializationService;
     private Map<RdmaServiceState, List<RdmaServiceListener>> eventListeners;
     // rdma communications ------------------------------------------------
     private RdmaConfig rdmaConfig;
@@ -50,8 +50,8 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
     public RdmaServiceImpl(NodeEngineImpl engine){
         this.engine = engine;
         this.memberListener = new RaftMemberListener();
-        this.rdmaConfig = new RdmaConfig();
         this.membershipInfoTask = new Thread(new MembershipQueryOperation());
+        this.rdmaConfig = new RdmaConfig();
         serializationService = (InternalSerializationService) engine.getSerializationService();
         eventListeners = new HashMap<>();
         serviceState = RdmaServiceState.SERVICE_NOT_READY;
@@ -66,6 +66,10 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
         // initialize fields that we couldn't in the constructor
         localMember = engine.getLocalMember();
         logger = new RdmaLogger(engine.getLogger(RdmaServiceImpl.class));
+
+        // Todo - check if system is RDMA capable. If not, stop here.
+
+        // load RDMA configuration
         try {
             rdmaConfig.loadFromProperties(PROPERTIES_FILE);
         } catch (Exception e) {
@@ -73,12 +77,13 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
                     e.getMessage() + ". Setting defaults.");
             rdmaConfig.setDefaults();
         }
+        // instantiate an RDMA server but don't run it yet
         rdmaServer = new RdmaTwoSidedServer(engine, engine.getPacketDispatcher(), serializationService, rdmaConfig);
         // Register a listener for membership events fired in the CP subsystem
         // We need this to know when to create or destroy RDMA Endpoints
         raftService = (RaftService) engine.getService(RaftService.SERVICE_NAME);
         raftService.registerMembershipListener(memberListener);
-        logger.info("RaftRdmaService initialized.");
+        logger.info("RdmaService initialized.");
         // find all active members so far and then start an RDMA server and initialize
         // RDMA client endpoints, only between those that are CP members.
         membershipInfoTask.start();
@@ -92,9 +97,18 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
 
     @Override
     public void reset() {
-        // Todo
-        setState(RdmaServiceState.SERVICE_NOT_READY);
         logger.info("Reset called");
+        setState(RdmaServiceState.SERVICE_NOT_READY);
+        // terminate the server
+        if(rdmaServer != null){
+            rdmaServer.shutdown();
+            membershipInfoTask.start();
+        }else{
+            init(engine,null);
+        }
+        // the state of the service will be changed once
+        // RDMA connections are established by the connection
+        // manager. That's why it's not done here.
     }
 
     @Override
@@ -170,32 +184,43 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
      * server and the initialization of RDMA client endpoints.
      */
     private class MembershipQueryOperation implements Runnable{
-        private final int waitDiscoveryTimeout = 500;
 
         @Override
         public void run() {
             // wait until the discovery process is complete
             try {
-                raftService.awaitUntilDiscoveryCompleted(waitDiscoveryTimeout, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
+                raftService.awaitUntilDiscoveryCompleted(rdmaConfig.getDiscoveryTimeout(),
+                        TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
                 logger.severe(e);
             }
             // ask which are the CP members and store the result
             InternalCompletableFuture<Collection<CPMember>> membersFuture = raftService.getCPMembers();
-            try {
-                cpMembers = membersFuture.get();
-                logger.info("Got CP members");
-            } catch (InterruptedException | ExecutionException e) {
-                logger.severe(e);
+            boolean success = false;
+            // make a few attempts in case exceptions are thrown because members are not ready
+            for(int i=0; i < rdmaConfig.getCpDiscoveryRetries(); i++){
+                try {
+                    cpMembers = membersFuture.get();
+                    logger.info("Got CP members");
+                    success = true;
+                    break;
+                } catch (Exception e) {
+                   //logger.severe(e);
+                }
             }
-            CPMember localCPMember = raftService.getLocalCPMember();
-            if( localCPMember != null){
-                // start server
-                logger.info("Starting the RDMA server.");
-                rdmaServer.setCpMembers(cpMembers, localCPMember);
-                rdmaServer.start();
+            if(!success){
+                logger.severe("Could not get the CP members. The RdmaService will be shutdown.");
+                shutdown(true);
             }else{
-                logger.info("Not a CP member, no need to start RDMA communications.");
+                CPMember localCPMember = raftService.getLocalCPMember();
+                if( localCPMember != null){
+                    // start server
+                    logger.info("This is a CP member. Starting the RDMA server.");
+                    rdmaServer.setCpMembers(cpMembers, localCPMember);
+                    rdmaServer.start();
+                }else{
+                    logger.info("This is not a CP member, no need to start RDMA communications.");
+                }
             }
         }
     }
