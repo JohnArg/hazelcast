@@ -53,7 +53,7 @@ public class RetryingConnectorImpl implements RdmaConnector{
             // RDMA must connect to the same public remote ip as TCP, but in another port
             InetSocketAddress rdmaAddress = new InetSocketAddress(remoteAddress.getAddress(),
                     settings.getRdmaListeningPort());
-            String rdmaAddressStr = rdmaAddress.getAddress().toString();
+            String rdmaAddressStr = rdmaAddress.getAddress().getHostAddress();
             // Try to connect up to certain number of retries, unless the thread is interrupted
             RpcBasicEndpoint remoteEndpoint;
             int retryDelay = settings.getConnectionRetryDelay();

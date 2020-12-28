@@ -44,7 +44,7 @@ public class RdmaServerAcceptor implements Runnable{
                 InetSocketAddress remoteAddress = (InetSocketAddress) remoteEndpoint.getDstAddr();
                 RdmaServerConnection serverConnection = new RdmaServerConnection(engine, remoteEndpoint,
                         connectionManager, new Address(remoteAddress));
-                inboundConnections.put(remoteAddress.getAddress().toString(), serverConnection);
+                inboundConnections.put(remoteAddress.getAddress().getHostAddress(), serverConnection);
                 logger.info("Accepted the connection from " + remoteAddress.toString());
             }catch (IOException e) {
                 logger.info("Server cannot accept client connections or has " +

@@ -17,9 +17,11 @@ import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.spi.impl.operationservice.Operation;
 
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * This service will manage RDMA connections for the Raft protocol,
@@ -44,7 +46,7 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
     // rdma communications ------------------------------------------------
     private RdmaConfig rdmaConfig;
     private RdmaTwoSidedServer rdmaServer;
-    private RdmaServiceState serviceState;
+    private AtomicReference<RdmaServiceState> serviceState;
 
 
     public RdmaServiceImpl(NodeEngineImpl engine){
@@ -54,7 +56,7 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
         this.rdmaConfig = new RdmaConfig();
         serializationService = (InternalSerializationService) engine.getSerializationService();
         eventListeners = new HashMap<>();
-        serviceState = RdmaServiceState.SERVICE_NOT_READY;
+        serviceState = new AtomicReference<>(RdmaServiceState.SERVICE_NOT_READY);
     }
 
     /* *****************************************************************
@@ -67,7 +69,11 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
         localMember = engine.getLocalMember();
         logger = new RdmaLogger(engine.getLogger(RdmaServiceImpl.class));
 
-        // Todo - check if system is RDMA capable. If not, stop here.
+        // Check if system can use RDMA. If not, stop here.
+        if(!canUseRDMACheck()){
+            logger.info("The server cannot use RDMA. The RDMA service will not be started.");
+            return;
+        }
 
         // load RDMA configuration
         try {
@@ -87,6 +93,26 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
         // find all active members so far and then start an RDMA server and initialize
         // RDMA client endpoints, only between those that are CP members.
         membershipInfoTask.start();
+    }
+
+    private boolean canUseRDMACheck(){
+
+        /* Todo - Check for RDMA capable NIC */
+
+        /* If the local member IP address is localhost or 127.0.0.1
+        RDMA cannot bind and listen to it. */
+        try {
+            String localAddress= localMember.getAddress().getInetAddress().getHostAddress();
+            if(localAddress.equals("127.0.0.1")){
+                logger.info("RDMA cannot bind to 127.0.0.1 or localhost.");
+                return false;
+            }
+        } catch (UnknownHostException e) {
+            logger.severe(e);
+            return false;
+        }
+
+        return true;
     }
 
     @Override
@@ -133,12 +159,12 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
 
     @Override
     public RdmaServiceState getLatestState() {
-        return serviceState;
+        return serviceState.get();
     }
 
     @Override
     public void setState(RdmaServiceState newState){
-        serviceState = newState;
+        serviceState.set(newState);
     }
 
     /* *****************************************************************
