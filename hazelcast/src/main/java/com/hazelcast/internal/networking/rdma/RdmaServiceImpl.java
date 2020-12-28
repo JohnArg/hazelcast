@@ -10,12 +10,14 @@ import com.hazelcast.cp.internal.RaftNodeLifecycleAwareService;
 import com.hazelcast.cp.internal.RaftService;
 import com.hazelcast.cp.internal.datastructures.spi.RaftManagedService;
 import com.hazelcast.internal.serialization.InternalSerializationService;
+import com.hazelcast.internal.server.RdmaConnectionManager;
 import com.hazelcast.internal.server.rdma.twosided.RdmaTwoSidedServer;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.spi.impl.InternalCompletableFuture;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.spi.impl.operationservice.Operation;
+import jarg.rdmarpc.connections.RpcBasicEndpoint;
 
 import java.net.UnknownHostException;
 import java.util.*;
@@ -219,7 +221,13 @@ public class RdmaServiceImpl implements RdmaService, RaftNodeLifecycleAwareServi
 
     @Override
     public boolean isConnectedWithRdma(Address address){
-        return rdmaServer.getConnectionManager().isConnectedWithRdma(address);
+        if(rdmaServer != null){
+            RdmaConnectionManager<RpcBasicEndpoint> connectionManager = rdmaServer.getConnectionManager();
+            if(connectionManager != null){
+                return connectionManager.isConnectedWithRdma(address);
+            }
+        }
+        return false;
     }
 
     /* *****************************************************************
