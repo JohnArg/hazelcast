@@ -1,11 +1,12 @@
-package com.hazelcast.internal.server.rdma.connections;
+package com.hazelcast.internal.server.rdma;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.server.RdmaConnectionManager;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.ibm.disni.RdmaServerEndpoint;
-import jarg.rdmarpc.connections.RpcBasicEndpoint;
+import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
+
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -18,14 +19,14 @@ import java.util.Map;
 public class RdmaServerAcceptor implements Runnable{
 
     private boolean terminate;
-    private RdmaServerEndpoint<RpcBasicEndpoint> serverEndpoint;
+    private RdmaServerEndpoint<ActiveRdmaCommunicator> serverEndpoint;
     private Map<String, RdmaServerConnection> inboundConnections;
     private NodeEngine engine;
-    RdmaConnectionManager<RpcBasicEndpoint> connectionManager;
+    RdmaConnectionManager<ActiveRdmaCommunicator> connectionManager;
     private RdmaLogger logger;
 
-    public RdmaServerAcceptor(NodeEngine engine, RdmaConnectionManager<RpcBasicEndpoint> connectionManager,
-                              RdmaServerEndpoint<RpcBasicEndpoint> serverEndpoint,
+    public RdmaServerAcceptor(NodeEngine engine, RdmaConnectionManager<ActiveRdmaCommunicator> connectionManager,
+                              RdmaServerEndpoint<ActiveRdmaCommunicator> serverEndpoint,
                               Map<String, RdmaServerConnection> inboundConnections){
         this.terminate = false;
         this.serverEndpoint = serverEndpoint;
@@ -40,7 +41,7 @@ public class RdmaServerAcceptor implements Runnable{
         // start server operation
         while(!terminate){
             try {
-                RpcBasicEndpoint remoteEndpoint = serverEndpoint.accept();
+                ActiveRdmaCommunicator remoteEndpoint = serverEndpoint.accept();
                 InetSocketAddress remoteAddress = (InetSocketAddress) remoteEndpoint.getDstAddr();
                 RdmaServerConnection serverConnection = new RdmaServerConnection(engine, remoteEndpoint,
                         connectionManager, new Address(remoteAddress));

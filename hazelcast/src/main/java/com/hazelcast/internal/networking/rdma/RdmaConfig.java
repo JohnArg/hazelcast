@@ -1,6 +1,7 @@
 package com.hazelcast.internal.networking.rdma;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.util.Properties;
 
 /**
@@ -10,33 +11,34 @@ import java.util.Properties;
 public class RdmaConfig {
 
     /* ********************************************************
-    *   Defaults
+     *   Configurable Parameters
      * ********************************************************/
 
     /**
-     * The port that an RDMA server will listen to.
+     * The address to bind the local server to. It should not be a loopback
+     * address.
      */
-    public static final int DEFAULT_RDMA_PORT = 3000;
+    private String rdmaAddress;
     /**
-     * The server's backlog.
+     * The port that the RDMA server will listen to
      */
-    public static final int DEFAULT_SERVER_BACKLOG = 100;
+    private int rdmaListeningPort;
     /**
      * How many times to attempt to connect to a remote server.
      */
-    public static final int DEFAULT_CONNECTION_RETRIES = 10;
+    private int connectionRetries;
     /**
      * How much time should the thread sleep before re-attempting
      * to connect.
      */
-    public static final int DEFAULT_CONNECTION_RETRY_DELAY = 500;
+    private int connectionRetryDelay;
     /**
      * How much time to wait until the discovery process through non-RDMA methods
      * is complete.
      * Used when members discover each other with other methods than RDMA, before
      * starting RDMA communications.
      */
-    public static final int DEFAULT_DISCOVERY_TIMEOUT = 5000;
+    private int discoveryTimeout;
     /**
      * How many times to ask the CP subsystem which are the CP members.
      * Used when RDMA communications are implemented only for the CP members
@@ -45,61 +47,48 @@ public class RdmaConfig {
      * which are the CP members. Because exceptions might be thrown, the process
      * will be attempted a specified number of retries.
      */
-    public static final int DEFAULT_CP_DISCOVERY_RETRIES = 5;
-
+    private int cpDiscoveryRetries;
     /**
      * Endpoint timeout (DiSNI property).
      */
-    public static final int DEFAULT_TIMEOUT = 1000;
+    private int timeout;
     /**
      * Endpoint polling mode (DiSNI property).
      */
-    public static final boolean DEFAULT_POLLING = false;
+    private boolean polling;
     /**
      * Endpoint max RDMA Work Requests (DiSNI property).
      */
-    public static final int DEFAULT_MAX_WRS = 100;
-    /**
-     * Endpoint RDMA Completion Queue size (DiSNI property).
-     */
-    public static final int DEFAULT_CQ_SIZE = 200;
+    private int maxWRs;
     /**
      * Endpoint Scatter/Gather elements (DiSNI property).
      */
-    public static final int DEFAULT_MAX_SGE = 1;
+    private int maxSge;
+    /**
+     * Endpoint RDMA Completion Queue size (DiSNI property).
+     */
+    private int cqSize;
+    /**
+     * The server's backlog.
+     */
+    private int serverBacklog;
     /**
      * Endpoint max buffer size for storing messages.
      */
-    public static final int DEFAULT_MAX_BUFFER_SIZE = 200;
-
-    /* ********************************************************
-     *   Configurable Parameters - Each is associated with a
-     *   default value above.
-     * ********************************************************/
-
-    private int rdmaListeningPort;
-    private int connectionRetries;
-    private int connectionRetryDelay;   // sleep for this amount of time
-    private int discoveryTimeout;
-    private int cpDiscoveryRetries;
-    private int timeout;
-    private boolean polling;
-    private int maxWRs;
-    private int maxSge;
-    private int cqSize;
-    private int serverBacklog;
     private int maxBufferSize;
 
     /**
      * Creates an empty RDMA config. The properties are not set to defaults.
-     * Call either {@link RdmaConfig#setDefaults()} or {@link RdmaConfig#loadFromProperties(String)}
+     * Call {@link RdmaConfig#loadFromProperties(String)}
      * to fill the properties with the appropriate values.
      */
     public RdmaConfig(){ }
 
-    public RdmaConfig(int listeningPort, int connectionRetries, int connectionRetryDelay,
+    public RdmaConfig(String rdmaAddress, int listeningPort,
+                      int connectionRetries, int connectionRetryDelay,
                       int discoveryTimeout, int cpDiscoveryRetries, int timeout, boolean polling, int maxWRs,
                       int maxSge, int cqSize, int serverBacklog, int maxBufferSize) {
+        this.rdmaAddress = rdmaAddress;
         this.rdmaListeningPort = listeningPort;
         this.connectionRetries = connectionRetries;
         this.connectionRetryDelay = connectionRetryDelay;
@@ -115,24 +104,6 @@ public class RdmaConfig {
     }
 
     /**
-     * Sets properties to default values, which are not optimal.
-     */
-    public void setDefaults(){
-        rdmaListeningPort = DEFAULT_RDMA_PORT;
-        connectionRetries = DEFAULT_CONNECTION_RETRIES;
-        connectionRetryDelay = DEFAULT_CONNECTION_RETRY_DELAY;
-        discoveryTimeout = DEFAULT_DISCOVERY_TIMEOUT;
-        cpDiscoveryRetries = DEFAULT_CP_DISCOVERY_RETRIES;
-        timeout = DEFAULT_TIMEOUT;
-        polling = DEFAULT_POLLING;
-        maxWRs = DEFAULT_MAX_WRS;
-        maxSge = DEFAULT_MAX_SGE;
-        cqSize = DEFAULT_CQ_SIZE;
-        serverBacklog = DEFAULT_SERVER_BACKLOG;
-        maxBufferSize = DEFAULT_MAX_BUFFER_SIZE;
-    }
-
-    /**
      * Load RDMA settings from a {@link Properties} file.
      * @param filename the name of the file to read the properties from.
      * @throws Exception
@@ -142,6 +113,7 @@ public class RdmaConfig {
         Properties properties = new Properties();
         properties.load(fileInputStr);
 
+        rdmaAddress = properties.getProperty("rdma.address");
         rdmaListeningPort = Integer.parseInt(properties.getProperty("rdma.listeningPort"));
         connectionRetries = Integer.parseInt(properties.getProperty("rdma.connectionRetries"));
         connectionRetryDelay = Integer.parseInt(properties.getProperty("rdma.connectionRetryDelay"));
@@ -155,6 +127,10 @@ public class RdmaConfig {
         serverBacklog = Integer.parseInt(properties.getProperty("rdma.serverBacklog"));
         maxBufferSize = Integer.parseInt(properties.getProperty("rdma.maxBufferSize"));
 
+    }
+
+    public String getRdmaAddress() {
+        return rdmaAddress;
     }
 
     public int getRdmaListeningPort() {
@@ -208,7 +184,8 @@ public class RdmaConfig {
     @Override
     public String toString() {
         return "RdmaConfig{" +
-                "rdmaListeningPort=" + rdmaListeningPort +
+                "rdmaAddress='" + rdmaAddress + '\'' +
+                ", rdmaListeningPort=" + rdmaListeningPort +
                 ", connectionRetries=" + connectionRetries +
                 ", connectionRetryDelay=" + connectionRetryDelay +
                 ", discoveryTimeout=" + discoveryTimeout +

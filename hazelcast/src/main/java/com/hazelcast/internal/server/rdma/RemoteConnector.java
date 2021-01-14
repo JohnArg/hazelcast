@@ -1,4 +1,4 @@
-package com.hazelcast.internal.server.rdma.connections;
+package com.hazelcast.internal.server.rdma;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -8,7 +8,7 @@ import java.util.List;
  * Performs connections to remote RDMA servers. Implementations can define their own
  * connection strategy.
  */
-public interface RdmaConnector{
+public interface RemoteConnector {
 
     /**
      * Connects to a remote address.

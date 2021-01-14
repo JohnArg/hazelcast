@@ -1,8 +1,6 @@
 package com.hazelcast.internal.server;
 
-import com.hazelcast.internal.server.MinimalServer;
 import com.ibm.disni.RdmaEndpoint;
-import jarg.rdmarpc.connections.RpcBasicEndpoint;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

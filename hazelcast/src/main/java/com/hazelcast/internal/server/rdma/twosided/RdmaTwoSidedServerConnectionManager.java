@@ -11,16 +11,13 @@ import com.hazelcast.internal.nio.PacketIOHelper;
 import com.hazelcast.internal.server.RdmaConnectionManager;
 import com.hazelcast.internal.server.RdmaServer;
 import com.hazelcast.internal.server.ServerConnection;
-import com.hazelcast.internal.server.rdma.connections.*;
+import com.hazelcast.internal.server.rdma.*;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.ibm.disni.RdmaActiveEndpointGroup;
 import com.ibm.disni.RdmaServerEndpoint;
-import jarg.rdmarpc.connections.RpcBasicEndpoint;
-import jarg.rdmarpc.connections.WorkCompletionHandler;
-import jarg.rdmarpc.connections.WorkRequestData;
-import jarg.rdmarpc.requests.WorkRequestTypes;
+import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -32,14 +29,14 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
-
+import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 /**
  * Manages the inbound RDMA connections on behalf of an RDMA server.
  * For RDMA, connections are established through {@link com.ibm.disni.RdmaEndpoint RdmaEndpoints}
  * instead of {@link ServerConnection ServerConnections}.
  */
-public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManager<RpcBasicEndpoint>{
+public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManager<ActiveRdmaCommunicator>{
 
     private NodeEngine engine;
     private RdmaLogger logger;
@@ -49,16 +46,16 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
     private Collection<CPMember> cpMembers;
     private CPMember localCPMember;
     // Rdma configuration
-    private RdmaActiveEndpointGroup<RpcBasicEndpoint> serverEndpointGroup;
-    private RdmaTwoSidedServerEndpointFactory serverEndpointFactory;
-    private RdmaServerEndpoint<RpcBasicEndpoint> serverEndpoint;
+    private RdmaActiveEndpointGroup<ActiveRdmaCommunicator> serverEndpointGroup;
+    private RdmaTwoSidedEndpointFactory serverEndpointFactory;
+    private RdmaServerEndpoint<ActiveRdmaCommunicator> serverEndpoint;
     private RdmaConfig rdmaConfig;
+    // Rdma rpc
     private Consumer<Packet> packetDispatcher;
-    private WorkCompletionHandler netRequestCompletionHandler;
     // Actual connection implementations
     private Thread rdmaServerAcceptorTask;
     private FutureTask<Collection<InetSocketAddress>> rdmaServerConnectorTask;
-    private RdmaConnector remoteRdmaConnector; // won't run on a separate thread
+    private RemoteConnector remoteRdmaConnector; // won't run on a separate thread
     // Connected endpoints
     private Map<String, RdmaServerConnection> inboundConnections;
     private Map<String, RdmaServerConnection> outboundConnections;
@@ -67,16 +64,13 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
 
     public RdmaTwoSidedServerConnectionManager(NodeEngine engine,
                                                Consumer<Packet> packetDispatcher,
-                                               InetSocketAddress localRdmaAddress,
                                                RdmaTwoSidedServer server, RdmaConfig rdmaConfig) {
         this.engine = engine;
         this.logger = new RdmaLogger(engine.getLogger(RdmaTwoSidedServerConnectionManager.class));
-        this.localRdmaAddress = localRdmaAddress;
         this.server = server;
         this.rdmaService = engine.getRdmaService();
         this.rdmaConfig = rdmaConfig;
         this.packetDispatcher = packetDispatcher;
-        netRequestCompletionHandler = new NetRequestCompletionHandler(engine, this);
         initializeConnectionDataStructures();
     }
 
@@ -87,8 +81,26 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
         cachedEndpoints = new HashMap<>();
     }
 
+    // bind server endpoint to configured address.
+    private boolean bindServer(){
+        InetSocketAddress localRdmaAddress;
+        String rdmaAddressStr = rdmaConfig.getRdmaAddress();
+        int port = rdmaConfig.getRdmaListeningPort();
+        int serverBacklog = rdmaConfig.getServerBacklog();
+
+        localRdmaAddress = new InetSocketAddress(rdmaAddressStr, port);
+        try {
+            serverEndpoint.bind(localRdmaAddress, serverBacklog);
+            logger.info("Server bound to address : " + localRdmaAddress.toString());
+            return true;
+        } catch (Exception e) {
+            logger.severe("Server failed to bind to provided IP address and available ports.");
+            return false;
+        }
+    }
+
     @Override
-    public void setupServerConnections(Collection<CPMember> cpMembers, CPMember localCPMember){
+    public boolean initializeRdmaCommunications(Collection<CPMember> cpMembers, CPMember localCPMember){
         this.cpMembers = cpMembers;
         this.localCPMember = localCPMember;
         try {
@@ -96,14 +108,15 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
             serverEndpointGroup = new RdmaActiveEndpointGroup<>(rdmaConfig.getTimeout(),
                     rdmaConfig.isPolling(), rdmaConfig.getMaxWRs(),
                     rdmaConfig.getMaxSge(), rdmaConfig.getCqSize());
-            serverEndpointFactory = new RdmaTwoSidedServerEndpointFactory(serverEndpointGroup,
-                    netRequestCompletionHandler,
-                    rdmaConfig.getMaxBufferSize(), rdmaConfig.getMaxWRs());
+            serverEndpointFactory = new RdmaTwoSidedEndpointFactory(serverEndpointGroup,
+                    rdmaConfig.getMaxBufferSize(), rdmaConfig.getMaxWRs(), engine, this);
             serverEndpointGroup.init(serverEndpointFactory);
             serverEndpoint = serverEndpointGroup.createServerEndpoint();
-            // bind server endpoint to address
-            serverEndpoint.bind(localRdmaAddress, rdmaConfig.getServerBacklog());
-            logger.info("server bound to address : " + localRdmaAddress.toString());
+
+            if(!bindServer()){
+                rdmaService.setState(RdmaServiceState.COMMUNICATIONS_NOT_POSSIBLE);
+                return false;
+            }
             // now we can prepare the tasks that will establish connections
             List<InetSocketAddress> remoteIps = cpMembers.stream()
                 .filter(member -> !member.equals(localCPMember)) // avoid connecting to ourselves
@@ -121,16 +134,17 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
 
             rdmaServerAcceptorTask = new Thread(new RdmaServerAcceptor(engine, this,
                     serverEndpoint, inboundConnections));
-            rdmaServerConnectorTask = new FutureTask<>(new RdmaConnectorTask(
+            rdmaServerConnectorTask = new FutureTask<>(new RemoteConnectorTask(
                     new RetryingConnectorImpl(engine, this,
-                            outboundConnections, rdmaConfig, netRequestCompletionHandler),
+                            outboundConnections, rdmaConfig),
                     remoteIps));
             remoteRdmaConnector = new SingleTimeConnectorImpl(engine, this,
-                    outboundConnections, rdmaConfig,
-                    netRequestCompletionHandler);
+                    outboundConnections, rdmaConfig);
         } catch (Exception e) {
             logger.severe(e);
+            return false;
         }
+        return true;
     }
 
     @Override
@@ -176,7 +190,7 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
     }
 
     @Override
-    public RdmaServer<RpcBasicEndpoint> getServer() {
+    public RdmaServer<ActiveRdmaCommunicator> getServer() {
         return server;
     }
 
@@ -251,9 +265,10 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
      * @return true on success, false on failure.
      */
     private boolean writeToConnection(RdmaServerConnection remoteConnection, Packet packet){
-        RpcBasicEndpoint endpoint = remoteConnection.getRdmaEndpoint();
+        ActiveRdmaCommunicator endpoint = remoteConnection.getRdmaEndpoint();
         // Ask for an available Work Request from the Endpoint
-        WorkRequestData workRequest = endpoint.getWorkRequestBlocking();
+        WorkRequestProxy workRequest = endpoint.getWorkRequestProxyProvider()
+                .getPostSendRequestBlocking(TWO_SIDED_SEND_SIGNALED);
         // Get the buffer associated with the available work request
         ByteBuffer dataBuffer = workRequest.getBuffer();
         // Use a new Packet IO Helper to write to the buffer. We need a new one because it's stateful
@@ -265,15 +280,9 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
         }
         dataBuffer.flip();
         // now we can send the data to the remote side
-        try {
-            endpoint.send(workRequest.getId(), dataBuffer.limit(), WorkRequestTypes.TWO_SIDED_SIGNALED);
-        } catch (IOException e) {
-            logger.severe(e);
-            return false;
-        }
+        workRequest.post();
         return true;
     }
-
 
     /**
      * Called when a packet is received, to decide what to do with it.
@@ -288,11 +297,11 @@ public class RdmaTwoSidedServerConnectionManager implements RdmaConnectionManage
     *   Getters / Setters
      * *************************************************************************/
 
-    public RdmaServerEndpoint<RpcBasicEndpoint> getServerEndpoint() {
+    public RdmaServerEndpoint<ActiveRdmaCommunicator> getServerEndpoint() {
         return serverEndpoint;
     }
 
-    public void setServerEndpoint(RdmaServerEndpoint<RpcBasicEndpoint> serverEndpoint) {
+    public void setServerEndpoint(RdmaServerEndpoint<ActiveRdmaCommunicator> serverEndpoint) {
         this.serverEndpoint = serverEndpoint;
     }
 

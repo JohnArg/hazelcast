@@ -38,7 +38,7 @@ import com.hazelcast.internal.metrics.metricsets.OperatingSystemMetricSet;
 import com.hazelcast.internal.metrics.metricsets.RuntimeMetricSet;
 import com.hazelcast.internal.metrics.metricsets.ThreadMetricSet;
 import com.hazelcast.internal.networking.rdma.RdmaService;
-import com.hazelcast.internal.networking.rdma.RdmaServiceImpl;
+import com.hazelcast.internal.networking.rdma.impl.RdmaServiceImpl;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.partition.InternalPartitionService;
 import com.hazelcast.internal.partition.MigrationInfo;

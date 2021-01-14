@@ -1,45 +1,43 @@
-package com.hazelcast.internal.server.rdma.connections;
+package com.hazelcast.internal.server.rdma;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.server.RdmaConnectionManager;
 import com.hazelcast.internal.server.rdma.twosided.RdmaTwoSidedEndpointFactory;
+import com.hazelcast.internal.server.rdma.twosided.RdmaTwoSidedServerConnectionManager;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.ibm.disni.RdmaActiveEndpointGroup;
-import jarg.rdmarpc.connections.RpcBasicEndpoint;
-import jarg.rdmarpc.connections.WorkCompletionHandler;
+import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class RetryingConnectorImpl implements RdmaConnector{
+public class RetryingConnectorImpl implements RemoteConnector {
     private RdmaLogger logger;
     private NodeEngine engine;
-    RdmaConnectionManager<RpcBasicEndpoint> connectionManager;
-    private RdmaActiveEndpointGroup<RpcBasicEndpoint> clientEndpointGroup;
+    RdmaConnectionManager<ActiveRdmaCommunicator> connectionManager;
+    private RdmaActiveEndpointGroup<ActiveRdmaCommunicator> clientEndpointGroup;
     private RdmaTwoSidedEndpointFactory clientEndpointFactory;
     private Map<String, RdmaServerConnection> outboundConnections;
     private RdmaConfig settings;
-    private WorkCompletionHandler netRequestCompletionHandler;
 
-    public RetryingConnectorImpl(NodeEngine engine, RdmaConnectionManager<RpcBasicEndpoint> connectionManager,
+    public RetryingConnectorImpl(NodeEngine engine, RdmaTwoSidedServerConnectionManager connectionManager,
                                  Map<String, RdmaServerConnection> outboundConnections,
-                                 RdmaConfig settings, WorkCompletionHandler netRequestCompletionHandler) {
+                                 RdmaConfig settings) {
         this.logger = new RdmaLogger(engine.getLogger(RetryingConnectorImpl.class));
         this.engine = engine;
         this.connectionManager = connectionManager;
         this.outboundConnections = outboundConnections;
         this.settings = settings;
-        this.netRequestCompletionHandler = netRequestCompletionHandler;
         // prepare a client endpoint group for connecting to other members
         try {
             clientEndpointGroup = new RdmaActiveEndpointGroup<>(settings.getTimeout(), settings.isPolling(),
                     settings.getMaxWRs(), settings.getMaxSge(), settings.getCqSize());
             clientEndpointFactory = new RdmaTwoSidedEndpointFactory(clientEndpointGroup,
-                    netRequestCompletionHandler, settings.getMaxBufferSize(), settings.getMaxWRs());
+                    settings.getMaxBufferSize(), settings.getMaxWRs(), engine, connectionManager);
             clientEndpointGroup.init(clientEndpointFactory);
         } catch (Exception e) {
             logger.severe(e);
@@ -55,7 +53,7 @@ public class RetryingConnectorImpl implements RdmaConnector{
                     settings.getRdmaListeningPort());
             String rdmaAddressStr = rdmaAddress.getAddress().getHostAddress();
             // Try to connect up to certain number of retries, unless the thread is interrupted
-            RpcBasicEndpoint remoteEndpoint;
+            ActiveRdmaCommunicator remoteEndpoint;
             int retryDelay = settings.getConnectionRetryDelay();
 
             for(int retries = settings.getConnectionRetries(); retries > 0; retries --){

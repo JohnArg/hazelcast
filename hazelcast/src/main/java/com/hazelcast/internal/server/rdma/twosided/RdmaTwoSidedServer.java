@@ -10,13 +10,10 @@ import com.hazelcast.internal.serialization.InternalSerializationService;
 import com.hazelcast.internal.server.RdmaConnectionManager;
 import com.hazelcast.internal.server.RdmaServer;
 import com.hazelcast.spi.impl.NodeEngine;
-import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.spi.impl.operationservice.Operation;
-import jarg.rdmarpc.connections.RpcBasicEndpoint;
+import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import org.jetbrains.annotations.NotNull;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -25,12 +22,11 @@ import static com.hazelcast.internal.nio.Packet.FLAG_URGENT;
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
 
 
-public class RdmaTwoSidedServer implements RdmaServer<RpcBasicEndpoint> {
+public class RdmaTwoSidedServer implements RdmaServer<ActiveRdmaCommunicator> {
     private RdmaLogger logger;
     private Collection<CPMember> cpMembers;
     private Member localMember;
     private Address localAddress;
-    private InetSocketAddress localRdmaAddress;
     private RdmaTwoSidedServerConnectionManager connectionManager;
     private AtomicBoolean isLive;
     private final InternalSerializationService serializationService;
@@ -42,21 +38,15 @@ public class RdmaTwoSidedServer implements RdmaServer<RpcBasicEndpoint> {
         logger = new RdmaLogger(engine.getLogger(RdmaTwoSidedServer.class));
         localMember = engine.getLocalMember();
         localAddress = localMember.getAddress();
-        // Get a local RDMA address
-        // RDMA must connect to the same public ip as TCP, but in its own port
-        InetSocketAddress tcpInetAddress = localMember.getSocketAddress();
-        InetAddress remoteIp = tcpInetAddress.getAddress();
-        localRdmaAddress = new InetSocketAddress(remoteIp, rdmaConfig.getRdmaListeningPort());
         // the connection manager needs to be created before the server operation thread
         this.connectionManager = new RdmaTwoSidedServerConnectionManager(engine, packetDispatcher,
-                localRdmaAddress, this,
-                rdmaConfig);
+                this, rdmaConfig);
         isLive = new AtomicBoolean(false);
         this.serializationService = serializationService;
     }
 
     @Override
-    public RdmaConnectionManager<RpcBasicEndpoint> getConnectionManager() {
+    public RdmaConnectionManager<ActiveRdmaCommunicator> getConnectionManager() {
         return connectionManager;
     }
 
@@ -89,26 +79,31 @@ public class RdmaTwoSidedServer implements RdmaServer<RpcBasicEndpoint> {
 
     @NotNull
     @Override
-    public Collection<RpcBasicEndpoint> getConnections() {
+    public Collection<ActiveRdmaCommunicator> getConnections() {
         return null;
     }
 
-    public void setCpMembers(Collection<CPMember> cpMembers, CPMember localCPMember) {
+    /**
+     * Returns whether it's possible to connect to CP members
+     * @param cpMembers
+     * @param localCPMember
+     * @return
+     */
+    public boolean canConnectToCpMembersWithRdma(Collection<CPMember> cpMembers, CPMember localCPMember) {
         this.cpMembers = cpMembers;
-        connectionManager.setupServerConnections(cpMembers, localCPMember);
+        return connectionManager.initializeRdmaCommunications(cpMembers, localCPMember);
     }
 
     public boolean send(Operation op, Address target){
         checkNotNull(target, "Target is required!");
-
         if (localAddress.equals(target)) {
             throw new IllegalArgumentException("Target is this node! -> " + target + ", op: " + op);
         }
-
         int streamId = op.getPartitionId();
         return connectionManager.transmit(toPacket(op), target, streamId);
     }
 
+    // Todo - serialization copy optimization
     private Packet toPacket(Operation op) {
         byte[] bytes = serializationService.toBytes(op);
         int partitionId = op.getPartitionId();

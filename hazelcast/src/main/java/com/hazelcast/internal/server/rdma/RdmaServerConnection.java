@@ -1,4 +1,4 @@
-package com.hazelcast.internal.server.rdma.connections;
+package com.hazelcast.internal.server.rdma;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.internal.networking.OutboundFrame;
@@ -9,7 +9,7 @@ import com.hazelcast.internal.server.RdmaConnectionManager;
 import com.hazelcast.internal.server.ServerConnection;
 import com.hazelcast.internal.server.ServerConnectionManager;
 import com.hazelcast.spi.impl.NodeEngine;
-import jarg.rdmarpc.connections.RpcBasicEndpoint;
+import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -21,16 +21,16 @@ import java.util.concurrent.ConcurrentMap;
 public class RdmaServerConnection implements ServerConnection {
     private final String CONNECTION_TYPE = ConnectionType.MEMBER;
     private RdmaLogger logger;
-    private RpcBasicEndpoint rdmaEndpoint;
+    private ActiveRdmaCommunicator rdmaEndpoint;
     private ConcurrentMap<String, String> attributeMap;
-    private RdmaConnectionManager<RpcBasicEndpoint> connectionManager;
+    private RdmaConnectionManager<ActiveRdmaCommunicator> connectionManager;
     private boolean isAlive;
     private String closeReason;
     private Throwable closeCause;
     private Address remoteAddress;
 
-    public RdmaServerConnection(NodeEngine engine, RpcBasicEndpoint rdmaEndpoint,
-                                RdmaConnectionManager<RpcBasicEndpoint> connectionManager,
+    public RdmaServerConnection(NodeEngine engine, ActiveRdmaCommunicator rdmaEndpoint,
+                                RdmaConnectionManager<ActiveRdmaCommunicator> connectionManager,
                                 Address remoteAddress){
         this.logger = new RdmaLogger(engine.getLogger(RdmaServerConnection.class));
         this.rdmaEndpoint = rdmaEndpoint;
@@ -127,7 +127,7 @@ public class RdmaServerConnection implements ServerConnection {
         return null;
     }
 
-    public RdmaConnectionManager<RpcBasicEndpoint> getRdmaConnectionManager(){
+    public RdmaConnectionManager<ActiveRdmaCommunicator> getRdmaConnectionManager(){
         return connectionManager;
     }
 
@@ -146,7 +146,7 @@ public class RdmaServerConnection implements ServerConnection {
         return false;
     }
 
-    public RpcBasicEndpoint getRdmaEndpoint() {
+    public ActiveRdmaCommunicator getRdmaEndpoint() {
         return rdmaEndpoint;
     }
 }

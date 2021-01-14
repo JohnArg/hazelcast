@@ -2,12 +2,10 @@ package com.hazelcast.internal.server;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.cp.CPMember;
-import com.hazelcast.internal.server.rdma.connections.RdmaServerConnection;
+import com.hazelcast.internal.server.rdma.RdmaServerConnection;
 import com.ibm.disni.RdmaEndpoint;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.Collection;
 
 
@@ -21,14 +19,15 @@ public interface RdmaConnectionManager<T extends RdmaEndpoint> extends MinimalSe
     RdmaServer<T> getServer();
 
     /**
-     * Will setup the server connections, but not start them. Must be called after discovering the CP members.
+     * Will setup RDMA communications, but not start them.
+     * @return true on success, false on failure.
      */
-    void setupServerConnections(Collection<CPMember> cpMembers, CPMember localCPMember);
+    boolean initializeRdmaCommunications(Collection<CPMember> cpMembers, CPMember localCPMember);
 
 
     /**
      * Starts accepting from and establishing connections to remote {@link RdmaEndpoint RdmaEndpoints}.
-     * Must be called after {@link RdmaConnectionManager#setupServerConnections(Collection, CPMember)}.
+     * Must be called after {@link RdmaConnectionManager#initializeRdmaCommunications(Collection, CPMember)}.
      */
     void startConnecting();
 
