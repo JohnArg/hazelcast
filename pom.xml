@@ -36,6 +36,7 @@
         <module>hazelcast-sql</module>
         <module>hazelcast-all</module>
         <module>distribution</module>
+        <module>rdma-server-discovery</module>
     </modules>
 
     <properties>

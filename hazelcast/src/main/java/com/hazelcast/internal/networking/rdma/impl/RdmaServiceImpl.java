@@ -65,15 +65,16 @@ public class RdmaServiceImpl implements RdmaService, RaftManagedService, RaftNod
 
     @Override
     public void init(NodeEngine nodeEngine, Properties properties) {
+        // initialize fields that we couldn't in the constructor
+        // MUST be done before checking RDMA availability to avoid errors!!
         logger = new RdmaLogger(engine.getLogger(RdmaServiceImpl.class.getSimpleName()));
+        localMember = engine.getLocalMember();
+        eventSubscriber = new RdmaServiceEventSubscriberImpl(this, engine, localMember);
         // Check if system can use RDMA. If not, stop here.
         if(!canUseRDMA()){
             logger.info("The server cannot use RDMA. The RDMA service will not be started.");
             return;
         }
-        // initialize fields that we couldn't in the constructor
-        localMember = engine.getLocalMember();
-        eventSubscriber = new RdmaServiceEventSubscriberImpl(this, engine, localMember);
         // instantiate an RDMA server but don't run it yet
         rdmaServer = new RdmaTwoSidedServer(engine, engine.getPacketDispatcher(), serializationService, rdmaConfig);
         // Register a listener for membership events fired in the CP subsystem
@@ -91,7 +92,6 @@ public class RdmaServiceImpl implements RdmaService, RaftManagedService, RaftNod
      * @return
      */
     private boolean canUseRDMA(){
-        /* Todo - Check for RDMA capable NIC */
         // load RDMA configuration
         try {
             rdmaConfig.loadFromProperties(PROPERTIES_FILE);
