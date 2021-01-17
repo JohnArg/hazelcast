@@ -9,6 +9,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
 import java.util.ArrayList;
@@ -59,23 +60,27 @@ public class ServerIdentifierSetSerializer extends AbstractDataSerializer {
         identifiers = new HashSet<>();
         // get request buffer
         ByteBuffer buffer = workRequestProxy.getBuffer();
-        // check the serial version id
-        long receivedSerialVersionId = buffer.getLong();
-        throwIfSerialVersionInvalid(serialVersionId, receivedSerialVersionId);
-        // read a list of addresses from the buffer
-        int listSize = buffer.getInt();
-        if(listSize <= 0){
-            return;
-        }
-        int addressBytesSize;
-        byte[] addressBytes;
-        // then for every identifier address, put the ip bytes and port
-        for(int i=0; i<listSize; i++){
-            ServerIdentifier identifier = new ServerIdentifier();
-            identifier.setWorkRequestProxy(workRequestProxy);
-            identifier.readFromWorkRequestBuffer();
-            // add identifier to the Set
-            identifiers.add(identifier);
+        try {
+            // check the serial version id
+            long receivedSerialVersionId = buffer.getLong();
+            throwIfSerialVersionInvalid(serialVersionId, receivedSerialVersionId);
+            // read a list of addresses from the buffer
+            int listSize = buffer.getInt();
+            if (listSize <= 0) {
+                return;
+            }
+            int addressBytesSize;
+            byte[] addressBytes;
+            // then for every identifier address, put the ip bytes and port
+            for (int i = 0; i < listSize; i++) {
+                ServerIdentifier identifier = new ServerIdentifier();
+                identifier.setWorkRequestProxy(workRequestProxy);
+                identifier.readFromWorkRequestBuffer();
+                // add identifier to the Set
+                identifiers.add(identifier);
+            }
+        }catch (BufferUnderflowException e){
+            throw new RpcDataSerializationException("Serialization Error : buffer underflow", e);
         }
     }
 

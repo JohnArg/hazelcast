@@ -4,6 +4,8 @@ import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
 import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
 import jarg.rdmarpc.rpc.serialization.AbstractDataSerializer;
 
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
 /**
@@ -27,23 +29,30 @@ public class BooleanSerializer extends AbstractDataSerializer {
     @Override
     public void writeToWorkRequestBuffer() throws RpcDataSerializationException{
         ByteBuffer buffer = workRequestProxy.getBuffer();
-        buffer.putLong(serialVersionId);
-        if (flag) {
-            buffer.put((byte) 1);
-        } else {
-            buffer.put((byte) 0);
+        try {
+            buffer.putLong(serialVersionId);
+            if (flag) {
+                buffer.put((byte) 1);
+            } else {
+                buffer.put((byte) 0);
+            }
+        }catch (BufferOverflowException e){
+            throw new RpcDataSerializationException("Serialization error : buffer overflow.", e);
         }
-        buffer.flip();
     }
 
     @Override
     public void readFromWorkRequestBuffer() throws RpcDataSerializationException {
         ByteBuffer buffer = workRequestProxy.getBuffer();
-        // check the serial version id
-        long receivedSerialVersionId = buffer.getLong();
-        throwIfSerialVersionInvalid(serialVersionId, receivedSerialVersionId);
-        byte value = buffer.get();
-        flag = (value == 1);
+        try {
+            // check the serial version id
+            long receivedSerialVersionId = buffer.getLong();
+            throwIfSerialVersionInvalid(serialVersionId, receivedSerialVersionId);
+            byte value = buffer.get();
+            flag = (value == 1);
+        }catch (BufferUnderflowException e){
+            throw new RpcDataSerializationException("Serialization error : buffer overflow.", e);
+        }
     }
 
     public boolean getFlag() {

@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
 import java.util.Objects;
@@ -103,38 +104,42 @@ public class ServerIdentifier extends AbstractDataSerializer {
     public void readFromWorkRequestBuffer() throws RpcDataSerializationException {
         // get request buffer
         ByteBuffer buffer = workRequestProxy.getBuffer();
-        // check the serial version id
-        long receivedSerialVersionId = buffer.getLong();
-        throwIfSerialVersionInvalid(serialVersionId, receivedSerialVersionId);
-        // start deserializing
-        int addressBytesSize;
-        byte[] addressBytes;
+        try {
+            // check the serial version id
+            long receivedSerialVersionId = buffer.getLong();
+            throwIfSerialVersionInvalid(serialVersionId, receivedSerialVersionId);
+            // start deserializing
+            int addressBytesSize;
+            byte[] addressBytes;
 
-        for(int i=0; i<2; i++){
-            addressBytesSize = buffer.getInt();
-            if(addressBytesSize == -1){ // no address to read
-                continue;
-            }
-            addressBytes = new byte[addressBytesSize];
-            buffer.get(addressBytes);
-            try {
-                // create a new InetAddress from the bytes
-                InetAddress ipAddress = InetAddress.getByAddress(addressBytes);
-                // get the port too
-                int port = buffer.getInt();
-                // add the new address
-                if(i == 0){
-                    rdmaAddress = new InetSocketAddress(ipAddress, port);
-                }else {
-                    tcpAddress = new InetSocketAddress(ipAddress, port);
+            for (int i = 0; i < 2; i++) {
+                addressBytesSize = buffer.getInt();
+                if (addressBytesSize == -1) { // no address to read
+                    continue;
                 }
-            } catch (UnknownHostException e) {
-                if(i == 0) {
-                    throw new RpcDataSerializationException("Cannot deserialize RDMA IP address and port.", e);
-                }else{
-                    throw new RpcDataSerializationException("Cannot deserialize TCP IP address and port.", e);
+                addressBytes = new byte[addressBytesSize];
+                buffer.get(addressBytes);
+                try {
+                    // create a new InetAddress from the bytes
+                    InetAddress ipAddress = InetAddress.getByAddress(addressBytes);
+                    // get the port too
+                    int port = buffer.getInt();
+                    // add the new address
+                    if (i == 0) {
+                        rdmaAddress = new InetSocketAddress(ipAddress, port);
+                    } else {
+                        tcpAddress = new InetSocketAddress(ipAddress, port);
+                    }
+                } catch (UnknownHostException e) {
+                    if (i == 0) {
+                        throw new RpcDataSerializationException("Cannot deserialize RDMA IP address and port.", e);
+                    } else {
+                        throw new RpcDataSerializationException("Cannot deserialize TCP IP address and port.", e);
+                    }
                 }
             }
+        }catch (BufferUnderflowException e){
+            throw new RpcDataSerializationException("Serialization Error : buffer underflow", e);
         }
     }
 }

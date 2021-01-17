@@ -1,9 +1,7 @@
 package discovery.common;
 
-import com.ibm.disni.verbs.IbvWC;
 import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxyProvider;
 import jarg.rdmarpc.networking.dependencies.netrequests.impl.QueuedProxyProvider;
 import jarg.rdmarpc.networking.dependencies.netrequests.types.PostedRequestType;
 import jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType;
@@ -12,11 +10,9 @@ import org.mockito.stubbing.Answer;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Supplies mock {@link WorkRequestProxy} objects for testing.
@@ -87,7 +83,6 @@ public class MockWorkRequestProxyFactory{
                 .then(proxyProvision);
         when(mockProxyProvider.getPostSendRequestNow(any(WorkRequestType.class)))
                 .then(proxyProvision);
-
         return mockProxy;
     }
 }
