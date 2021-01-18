@@ -40,7 +40,7 @@ public class GetRegisteredServersResponseInvocator implements RpcOperationInvoca
             Set<ServerIdentifier> members = serverIdentifierSetSerializer.getIdentifiers();
             // complete future that was waiting for this response
             CompletableFuture<Set<ServerIdentifier>> responseFuture =
-                    responseManager.getRegisteredServersPendingResponses().get(operationId);
+                    responseManager.getRegisteredServersPendingResponses().remove(operationId);
             responseFuture.complete(members);
         } catch (RpcDataSerializationException e) {
             logger.error("Cannot deserialize response");

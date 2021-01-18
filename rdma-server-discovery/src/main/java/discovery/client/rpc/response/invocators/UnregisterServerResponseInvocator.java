@@ -37,7 +37,7 @@ public class UnregisterServerResponseInvocator implements RpcOperationInvocator 
             Boolean success = booleanSerializer.getFlag();
             // complete future that was waiting for this response
             CompletableFuture<Boolean> responseFuture =
-                    responseManager.unregisterServerPendingResponses().get(operationId);
+                    responseManager.unregisterServerPendingResponses().remove(operationId);
             responseFuture.complete(success);
         } catch (RpcDataSerializationException e) {
             logger.error("Cannot deserialize response");
