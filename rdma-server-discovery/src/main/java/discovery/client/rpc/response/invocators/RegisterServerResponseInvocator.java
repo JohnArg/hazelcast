@@ -37,11 +37,11 @@ public class RegisterServerResponseInvocator implements RpcOperationInvocator {
             serverIdentifierSetSerializer.setWorkRequestProxy(workRequestProxy);
             serverIdentifierSetSerializer.readFromWorkRequestBuffer();
             workRequestProxy.releaseWorkRequest();
-            Set<ServerIdentifier> previousServers = serverIdentifierSetSerializer.getIdentifiers();
+            Set<ServerIdentifier> members = serverIdentifierSetSerializer.getIdentifiers();
             // complete future that was waiting for this response
             CompletableFuture<Set<ServerIdentifier>> responseFuture =
                     responseManager.registerServerPendingResponses().remove(operationId);
-            responseFuture.complete(previousServers);
+            responseFuture.complete(members);
         } catch (RpcDataSerializationException e) {
             logger.error("Cannot deserialize response");
             workRequestProxy.releaseWorkRequest();

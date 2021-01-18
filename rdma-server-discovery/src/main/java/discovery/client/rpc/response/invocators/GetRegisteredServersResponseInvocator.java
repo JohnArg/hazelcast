@@ -43,7 +43,7 @@ public class GetRegisteredServersResponseInvocator implements RpcOperationInvoca
                     responseManager.getRegisteredServersPendingResponses().remove(operationId);
             responseFuture.complete(members);
         } catch (RpcDataSerializationException e) {
-            logger.error("Cannot deserialize response");
+            logger.error("Cannot deserialize response", e);
             workRequestProxy.releaseWorkRequest();
         }
     }

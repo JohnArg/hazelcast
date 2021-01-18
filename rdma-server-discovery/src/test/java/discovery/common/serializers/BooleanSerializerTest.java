@@ -24,6 +24,8 @@ public class BooleanSerializerTest {
         boolean flag = true;
         serializer.setFlag(flag);
         assertDoesNotThrow( ()->{ serializer.writeToWorkRequestBuffer(); });
+        // do this after writing
+        mockProxy.getBuffer().flip();
 
         long serialVersionId = testBuffer.getLong();
         byte flagByte = testBuffer.get();
@@ -46,8 +48,10 @@ public class BooleanSerializerTest {
         boolean flag = true;
         serializer.setFlag(flag);
         assertDoesNotThrow( ()->{ serializer.writeToWorkRequestBuffer(); });
+        // do this after writing
+        mockProxy.getBuffer().flip();
 
-        assertDoesNotThrow( ()->{serializer.readFromWorkRequestBuffer();});
+            assertDoesNotThrow( ()->{serializer.readFromWorkRequestBuffer();});
         assertEquals(flag, serializer.getFlag());
     }
 }
