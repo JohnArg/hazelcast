@@ -1,16 +1,17 @@
-package com.hazelcast.internal.server;
+package com.hazelcast.internal.server.rdma;
 
 import com.hazelcast.cluster.Address;
-import com.hazelcast.cp.CPMember;
-import com.hazelcast.internal.server.rdma.RdmaServerConnection;
+import com.hazelcast.internal.server.MinimalServerConnectionManager;
 import com.ibm.disni.RdmaEndpoint;
 
 import java.net.InetAddress;
-import java.util.Collection;
+import java.net.InetSocketAddress;
 
 
-
-public interface RdmaConnectionManager<T extends RdmaEndpoint> extends MinimalServerConnectionManager{
+/**
+ * Manages the RDMA connections on behalf of an {@link RdmaServer}.
+ */
+public interface RdmaConnectionManager<T extends RdmaEndpoint> extends MinimalServerConnectionManager {
 
     /**
      * Returns the server that manages RDMA communications.
@@ -18,18 +19,11 @@ public interface RdmaConnectionManager<T extends RdmaEndpoint> extends MinimalSe
      */
     RdmaServer<T> getServer();
 
-    /**
-     * Will setup RDMA communications, but not start them.
-     * @return true on success, false on failure.
-     */
-    boolean initializeRdmaCommunications(Collection<CPMember> cpMembers, CPMember localCPMember);
-
 
     /**
      * Starts accepting from and establishing connections to remote {@link RdmaEndpoint RdmaEndpoints}.
-     * Must be called after {@link RdmaConnectionManager#initializeRdmaCommunications(Collection, CPMember)}.
      */
-    void startConnecting();
+    void start();
 
 
     /**
@@ -40,10 +34,10 @@ public interface RdmaConnectionManager<T extends RdmaEndpoint> extends MinimalSe
 
     /**
      * Get a connection from a {@link InetAddress#toString()  InetAddress String}.
-     * @param inetAddressStr the {@link InetAddress} String.
+     * @param socketAddress the address to look for.
      * @return the connection requested or null if no such connection exists.
      */
-    RdmaServerConnection getRdmaServerConnection(String inetAddressStr);
+    RdmaServerConnection getRdmaServerConnection(InetSocketAddress socketAddress);
 
     /**
      * Check if there is an RDMA connection towards this address.

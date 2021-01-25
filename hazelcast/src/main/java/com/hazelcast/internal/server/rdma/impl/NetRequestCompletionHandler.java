@@ -1,4 +1,4 @@
-package com.hazelcast.internal.server.rdma.twosided;
+package com.hazelcast.internal.server.rdma.impl;
 
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.nio.Packet;
@@ -6,9 +6,11 @@ import com.hazelcast.internal.nio.PacketIOHelper;
 import com.hazelcast.internal.server.rdma.RdmaServerConnection;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.ibm.disni.verbs.IbvWC;
+import discovery.common.api.ServerIdentifier;
 import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -20,52 +22,79 @@ import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequest
 public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
     private NodeEngine nodeEngine;
     private RdmaLogger logger;
-    private RdmaTwoSidedServerConnectionManager connectionManager;
+    private RdmaConnectionManagerImpl connectionManager;
     private Consumer<Packet> packetDispatcher;
+    private InetSocketAddress localRdmaServerAddress;
 
-    public NetRequestCompletionHandler(NodeEngine engine, RdmaTwoSidedServerConnectionManager connectionManager) {
+    public NetRequestCompletionHandler(NodeEngine engine, RdmaConnectionManagerImpl connectionManager,
+                                       InetSocketAddress localRdmaServerAddress) {
         this.nodeEngine = engine;
         this.logger = new RdmaLogger(engine.getLogger(NetRequestCompletionHandler.class));
         this.connectionManager = connectionManager;
         this.packetDispatcher = connectionManager.getPacketDispatcher();
+        this.localRdmaServerAddress = localRdmaServerAddress;
     }
 
     @Override
     public void handleCqEvent(IbvWC workCompletionEvent) {
         // associate event with a Work Request
         WorkRequestProxy receiveProxy = getProxyProvider().getWorkRequestProxyForWc(workCompletionEvent);
-        // if this is a completion for a SEND
+        // if this is a completion for a SEND ================================================
         if(receiveProxy.getWorkRequestType().equals(TWO_SIDED_SEND_SIGNALED)){
             receiveProxy.releaseWorkRequest();
-            // else if this is a completion for a RECV
+            // else if this is a completion for a RECV ======================================
         }else if(receiveProxy.getWorkRequestType().equals(TWO_SIDED_RECV)) {
+            // get details from packet/connection
             PacketIOHelper packetIOHelper = new PacketIOHelper();
             Packet receivedPacket;
-            // Todo - copying optimization
-            // read the whole packet
+            ActiveRdmaCommunicator communicator = (ActiveRdmaCommunicator) receiveProxy.getEndpoint();
+            InetSocketAddress senderAddress = null;
+            try {
+                // we don't know if the message came from an outbound or inbound connection
+                senderAddress = (InetSocketAddress) communicator.getDstAddr();
+                if(senderAddress.equals(localRdmaServerAddress)){
+                    senderAddress = (InetSocketAddress) communicator.getSrcAddr();
+                }
+            }catch (IOException e){
+                receiveProxy.releaseWorkRequest();
+                logger.severe("Cannot retrieve socket address from communicator.", e);
+                return;
+            }
+            // Sent Data => Packet
             do{
                 receivedPacket = packetIOHelper.readFrom(receiveProxy.getBuffer());
             }while (receivedPacket == null);
-            // get the sender of the packet
-            InetSocketAddress remoteAddress = null;
-            ActiveRdmaCommunicator communicator = (ActiveRdmaCommunicator) receiveProxy.getEndpoint();
-            try {
-                remoteAddress = (InetSocketAddress) communicator.getDstAddr();
-                RdmaServerConnection connection = connectionManager.getRdmaServerConnection(remoteAddress.
-                        getAddress().getHostAddress());
-                if(connection == null){
-                    throw new IOException("Cannot associate connection with received packet");
-                }
-                receivedPacket.setConn(connection);
-            } catch (IOException e) {
-                logger.severe(e);
-                receiveProxy.releaseWorkRequest();
-                return;
-            }
-            // must free up this work request, so that it can be reused for RDMA communications
-            receiveProxy.releaseWorkRequest();
-            connectionManager.onReceiveFromConnection(receivedPacket);
 
+            // Handle Packet =======================================
+            if(receivedPacket.getPacketType().equals(Packet.Type.SERVER_CONTROL)){
+                ServerIdentifier serverIdentifier = new ServerIdentifier();
+                serverIdentifier.setWorkRequestProxy(receiveProxy);
+                try {
+                    serverIdentifier.readFromWorkRequestBuffer();
+                    // must free up this work request, so that it can be reused for RDMA communications
+                    receiveProxy.releaseWorkRequest();
+                    connectionManager.handleServerRegistration(serverIdentifier, communicator, senderAddress);
+                } catch (RpcDataSerializationException e) {
+                    receiveProxy.releaseWorkRequest();
+                    logger.severe("Cannot deserialize Server Identifier from received packet.", e);
+                }
+            }else {
+                try {
+                    RdmaServerConnection connection = connectionManager.getRdmaServerConnection(senderAddress);
+                    if(connection == null){
+                        throw new IOException("Cannot associate connection with received packet. Sender : " +
+                                senderAddress);
+                    }
+                    receivedPacket.setConn(connection);
+                } catch (IOException e) {
+                    receiveProxy.releaseWorkRequest();
+                    logger.severe(e);
+                    return;
+                }
+                // must free up this work request, so that it can be reused for RDMA communications
+                receiveProxy.releaseWorkRequest();
+                connectionManager.onReceiveFromConnection(receivedPacket);
+            }
         }
     }
 

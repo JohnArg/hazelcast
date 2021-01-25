@@ -18,8 +18,8 @@ import java.util.concurrent.Executors;
  * Server component that accepts RDMA connections from clients of the
  * Discovery Service.
  */
-public class ServerComponent {
-    private static final Logger logger = LoggerFactory.getLogger(ServerComponent.class);
+public class DiscoveryService {
+    private static final Logger logger = LoggerFactory.getLogger(DiscoveryService.class.getSimpleName());
 
     RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup;
     private List<ActiveRdmaCommunicator> inboundConnections;
@@ -38,9 +38,9 @@ public class ServerComponent {
     private ExecutorService requestProcessingWorkers;
 
 
-    public ServerComponent(InetSocketAddress listeningAddress, int backlog,
-                           int maxWorkRequests, int cqSize, int timeout, boolean polling,
-                           int maxSge, int maxNetworkBufferSize, int processingThreadsNum) {
+    public DiscoveryService(InetSocketAddress listeningAddress, int backlog,
+                            int maxWorkRequests, int cqSize, int timeout, boolean polling,
+                            int maxSge, int maxNetworkBufferSize, int processingThreadsNum) {
         this.listeningAddress = listeningAddress;
         this.backlog = backlog;
         this.maxWorkRequests = maxWorkRequests;
@@ -75,6 +75,7 @@ public class ServerComponent {
         // bind the server endpoint to a provided ip and port
         try {
             serverEndpoint.bind(listeningAddress, backlog);
+            logger.info("Service started at address " + listeningAddress);
         } catch (Exception e) {
             logger.error("Cannot bind server to address : " + listeningAddress.toString());
             return;

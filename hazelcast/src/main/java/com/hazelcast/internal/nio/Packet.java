@@ -308,7 +308,7 @@ public final class Packet extends HeapData implements OutboundFrame {
             }
         },
         /**
-         * TcpServer specific control messages.
+         * Server specific control messages.
          * <p>
          * {@code ordinal = 4}
          */

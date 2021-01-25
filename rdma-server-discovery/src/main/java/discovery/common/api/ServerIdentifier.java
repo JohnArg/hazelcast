@@ -142,4 +142,12 @@ public class ServerIdentifier extends AbstractDataSerializer {
             throw new RpcDataSerializationException("Serialization Error : buffer underflow", e);
         }
     }
+
+    @Override
+    public String toString() {
+        return "ServerIdentifier{" +
+                "rdmaAddress=" + rdmaAddress +
+                ", tcpAddress=" + tcpAddress +
+                '}';
+    }
 }

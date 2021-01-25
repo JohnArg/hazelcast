@@ -1,11 +1,8 @@
 package com.hazelcast.internal.networking.rdma.util;
 
-import com.hazelcast.logging.AbstractLogger;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.LogEvent;
-import com.sun.jna.platform.win32.Guid;
 
-import java.util.Arrays;
 import java.util.logging.Level;
 
 /**

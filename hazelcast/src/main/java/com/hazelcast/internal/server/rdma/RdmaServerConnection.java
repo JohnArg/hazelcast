@@ -5,10 +5,10 @@ import com.hazelcast.internal.networking.OutboundFrame;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.nio.ConnectionType;
 import com.hazelcast.internal.nio.Packet;
-import com.hazelcast.internal.server.RdmaConnectionManager;
 import com.hazelcast.internal.server.ServerConnection;
 import com.hazelcast.internal.server.ServerConnectionManager;
 import com.hazelcast.spi.impl.NodeEngine;
+import discovery.common.api.ServerIdentifier;
 import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 
 import java.io.IOException;
@@ -24,6 +24,7 @@ public class RdmaServerConnection implements ServerConnection {
     private ActiveRdmaCommunicator rdmaEndpoint;
     private ConcurrentMap<String, String> attributeMap;
     private RdmaConnectionManager<ActiveRdmaCommunicator> connectionManager;
+    private ServerIdentifier serverIdentifier;
     private boolean isAlive;
     private String closeReason;
     private Throwable closeCause;
@@ -31,13 +32,14 @@ public class RdmaServerConnection implements ServerConnection {
 
     public RdmaServerConnection(NodeEngine engine, ActiveRdmaCommunicator rdmaEndpoint,
                                 RdmaConnectionManager<ActiveRdmaCommunicator> connectionManager,
-                                Address remoteAddress){
+                                Address remoteAddress, ServerIdentifier serverIdentifier){
         this.logger = new RdmaLogger(engine.getLogger(RdmaServerConnection.class));
         this.rdmaEndpoint = rdmaEndpoint;
         this.connectionManager = connectionManager;
         this.attributeMap = new ConcurrentHashMap<>();
         this.isAlive = true;
         this.remoteAddress = remoteAddress;
+        this.serverIdentifier = serverIdentifier;
     }
 
     @Override
@@ -148,5 +150,9 @@ public class RdmaServerConnection implements ServerConnection {
 
     public ActiveRdmaCommunicator getRdmaEndpoint() {
         return rdmaEndpoint;
+    }
+
+    public ServerIdentifier getServerIdentifier() {
+        return serverIdentifier;
     }
 }

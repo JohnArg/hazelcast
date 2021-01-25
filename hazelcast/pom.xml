@@ -358,6 +358,11 @@
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>rdma-server-discovery</artifactId>
+            <version>4.1-SNAPSHOT</version>
+        </dependency>
         <!-- needed for thread affinity -->
         <dependency>
             <groupId>net.openhft</groupId>

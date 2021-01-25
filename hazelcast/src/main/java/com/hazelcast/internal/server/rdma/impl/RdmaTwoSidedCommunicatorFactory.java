@@ -1,4 +1,4 @@
-package com.hazelcast.internal.server.rdma.twosided;
+package com.hazelcast.internal.server.rdma.impl;
 
 
 import com.hazelcast.spi.impl.NodeEngine;
@@ -13,17 +13,17 @@ import jarg.rdmarpc.networking.dependencies.svc.impl.TwoSidedSVCManager;
 
 import java.io.IOException;
 
-public class RdmaTwoSidedEndpointFactory implements RdmaEndpointFactory<ActiveRdmaCommunicator> {
+public class RdmaTwoSidedCommunicatorFactory implements RdmaEndpointFactory<ActiveRdmaCommunicator> {
 
     private RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup;
     private int maxBufferSize;
     private int maxWorkRequests;
     private NodeEngine engine;
-    private RdmaTwoSidedServerConnectionManager connectionManager;
+    private RdmaConnectionManagerImpl connectionManager;
 
-    public RdmaTwoSidedEndpointFactory(RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup,
-                                       int maxBufferSize, int maxWorkRequests, NodeEngine engine,
-                                       RdmaTwoSidedServerConnectionManager connectionManager) {
+    public RdmaTwoSidedCommunicatorFactory(RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup,
+                                           int maxBufferSize, int maxWorkRequests, NodeEngine engine,
+                                           RdmaConnectionManagerImpl connectionManager) {
         this.endpointGroup = endpointGroup;
         this.maxBufferSize = maxBufferSize;
         this.maxWorkRequests = maxWorkRequests;
@@ -40,7 +40,8 @@ public class RdmaTwoSidedEndpointFactory implements RdmaEndpointFactory<ActiveRd
                 .setBufferManager(new TwoSidedBufferManager(maxBufferSize, maxWorkRequests))
                 .setProxyProvider(new QueuedProxyProvider(maxWorkRequests))
                 .setSvcManager(new TwoSidedSVCManager(maxBufferSize, maxWorkRequests))
-                .setWorkCompletionHandler(new NetRequestCompletionHandler(engine, connectionManager));
+                .setWorkCompletionHandler(new NetRequestCompletionHandler(engine, connectionManager,
+                        connectionManager.getLocalRdmaAddress()));
         
         return new ActiveRdmaCommunicator(endpointGroup, id, serverSide, dependencies);
     }

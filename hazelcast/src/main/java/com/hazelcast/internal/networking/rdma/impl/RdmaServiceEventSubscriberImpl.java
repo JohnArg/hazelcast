@@ -28,12 +28,12 @@ public class RdmaServiceEventSubscriberImpl implements CPMembershipListener {
 
     @Override
     public void memberAdded(CPMembershipEvent event) {
-        logger.info("Member added : "+ event.getMember().getAddress().getHost());
+        logger.info("Member added : "+ event.getMember().getUuid());
     }
 
     @Override
     public void memberRemoved(CPMembershipEvent event) {
-        logger.info("Member added : "+ event.getMember().getAddress().getHost());
+        logger.info("Member added : "+ event.getMember().getUuid());
     }
 
 }

@@ -1,7 +1,6 @@
 package com.hazelcast.internal.networking.rdma;
 
-import java.io.*;
-import java.net.InetAddress;
+import java.io.InputStream;
 import java.util.Properties;
 
 /**
@@ -11,8 +10,13 @@ import java.util.Properties;
 public class RdmaConfig {
 
     /* ********************************************************
-     *   Configurable Parameters
+     *   Configuration Parameters
      * ********************************************************/
+
+    /**
+     * Whether to enable RDMA or not
+     */
+    private boolean rdmaEnable;
 
     /**
      * The address to bind the local server to. It should not be a loopback
@@ -20,11 +24,17 @@ public class RdmaConfig {
      */
     private String rdmaAddress;
     /**
-     * The port that the RDMA server will listen to
+     * The minimum port that the RDMA server will listen to
      */
-    private int rdmaListeningPort;
+    private int rdmaListeningPortMin;
     /**
-     * How many times to attempt to connect to a remote server.
+     * The maximum port that the RDMA server will listen to,
+     * if it fails to listen to the other ports between this
+     * value and the minimum port value.
+     */
+    private int rdmaListeningPortMax;
+    /**
+     * How many times to retry to connect.
      */
     private int connectionRetries;
     /**
@@ -33,23 +43,15 @@ public class RdmaConfig {
      */
     private int connectionRetryDelay;
     /**
-     * How much time to wait until the discovery process through non-RDMA methods
-     * is complete.
-     * Used when members discover each other with other methods than RDMA, before
-     * starting RDMA communications.
+     * IP address of the RDMA discovery service.
      */
-    private int discoveryTimeout;
+    private String discoveryAddress;
     /**
-     * How many times to ask the CP subsystem which are the CP members.
-     * Used when RDMA communications are implemented only for the CP members
-     * and the {@link RdmaService} has to query the
-     * {@link com.hazelcast.cp.internal.RaftService RaftService}
-     * which are the CP members. Because exceptions might be thrown, the process
-     * will be attempted a specified number of retries.
+     * Port of the RDMA discovery service.
      */
-    private int cpDiscoveryRetries;
+    private int discoveryPort;
     /**
-     * Endpoint timeout (DiSNI property).
+     * Endpoint connection timeout (DiSNI property).
      */
     private int timeout;
     /**
@@ -76,7 +78,6 @@ public class RdmaConfig {
      * Endpoint max buffer size for storing messages.
      */
     private int maxBufferSize;
-
     /**
      * Creates an empty RDMA config. The properties are not set to defaults.
      * Call {@link RdmaConfig#loadFromProperties(String)}
@@ -84,16 +85,19 @@ public class RdmaConfig {
      */
     public RdmaConfig(){ }
 
-    public RdmaConfig(String rdmaAddress, int listeningPort,
-                      int connectionRetries, int connectionRetryDelay,
-                      int discoveryTimeout, int cpDiscoveryRetries, int timeout, boolean polling, int maxWRs,
-                      int maxSge, int cqSize, int serverBacklog, int maxBufferSize) {
+
+    public RdmaConfig(boolean rdmaEnable, String rdmaAddress, int rdmaListeningPortMin,
+                      int rdmaListeningPortMax, int connectionRetries, int connectionRetryDelay,
+                      String discoveryAddress, int discoveryPort, int timeout, boolean polling,
+                      int maxWRs, int maxSge, int cqSize, int serverBacklog, int maxBufferSize) {
+        this.rdmaEnable = rdmaEnable;
         this.rdmaAddress = rdmaAddress;
-        this.rdmaListeningPort = listeningPort;
+        this.rdmaListeningPortMin = rdmaListeningPortMin;
+        this.rdmaListeningPortMax = rdmaListeningPortMax;
         this.connectionRetries = connectionRetries;
         this.connectionRetryDelay = connectionRetryDelay;
-        this.discoveryTimeout = discoveryTimeout;
-        this.cpDiscoveryRetries = cpDiscoveryRetries;
+        this.discoveryAddress = discoveryAddress;
+        this.discoveryPort = discoveryPort;
         this.timeout = timeout;
         this.polling = polling;
         this.maxWRs = maxWRs;
@@ -113,12 +117,17 @@ public class RdmaConfig {
         Properties properties = new Properties();
         properties.load(fileInputStr);
 
+        rdmaEnable = Boolean.parseBoolean(properties.getProperty("rdma.enable"));
+        if(!rdmaEnable){
+            return;
+        }
         rdmaAddress = properties.getProperty("rdma.address");
-        rdmaListeningPort = Integer.parseInt(properties.getProperty("rdma.listeningPort"));
+        rdmaListeningPortMin = Integer.parseInt(properties.getProperty("rdma.listeningPortMin"));
+        rdmaListeningPortMax = Integer.parseInt(properties.getProperty("rdma.listeningPortMax"));
         connectionRetries = Integer.parseInt(properties.getProperty("rdma.connectionRetries"));
         connectionRetryDelay = Integer.parseInt(properties.getProperty("rdma.connectionRetryDelay"));
-        discoveryTimeout = Integer.parseInt(properties.getProperty("rdma.discoveryTimeout"));
-        cpDiscoveryRetries = Integer.parseInt(properties.getProperty("rdma.cpDiscoveryRetries"));
+        discoveryAddress = properties.getProperty("rdma.discovery.address");
+        discoveryPort = Integer.parseInt(properties.getProperty("rdma.discovery.port"));
         timeout = Integer.parseInt(properties.getProperty("rdma.timeout"));
         polling = Boolean.parseBoolean(properties.getProperty("rdma.polling"));
         maxWRs = Integer.parseInt(properties.getProperty("rdma.maxWRs"));
@@ -126,16 +135,12 @@ public class RdmaConfig {
         cqSize = Integer.parseInt(properties.getProperty("rdma.cqSize"));
         serverBacklog = Integer.parseInt(properties.getProperty("rdma.serverBacklog"));
         maxBufferSize = Integer.parseInt(properties.getProperty("rdma.maxBufferSize"));
-
     }
 
     public String getRdmaAddress() {
         return rdmaAddress;
     }
 
-    public int getRdmaListeningPort() {
-        return rdmaListeningPort;
-    }
 
     public int getTimeout() {
         return timeout;
@@ -173,23 +178,41 @@ public class RdmaConfig {
         return connectionRetryDelay;
     }
 
-    public int getDiscoveryTimeout() {
-        return discoveryTimeout;
+    public boolean isRdmaEnabled() {
+        return rdmaEnable;
     }
 
-    public int getCpDiscoveryRetries() {
-        return cpDiscoveryRetries;
+    public int getRdmaListeningPortMin() {
+        return rdmaListeningPortMin;
+    }
+
+    public int getRdmaListeningPortMax() {
+        return rdmaListeningPortMax;
+    }
+
+    public String getDiscoveryAddress() {
+        return discoveryAddress;
+    }
+
+    public int getDiscoveryPort() {
+        return discoveryPort;
+    }
+
+    public void setRdmaEnable(boolean rdmaEnable) {
+        this.rdmaEnable = rdmaEnable;
     }
 
     @Override
     public String toString() {
         return "RdmaConfig{" +
-                "rdmaAddress='" + rdmaAddress + '\'' +
-                ", rdmaListeningPort=" + rdmaListeningPort +
+                "rdmaEnable=" + rdmaEnable +
+                ", rdmaAddress='" + rdmaAddress + '\'' +
+                ", rdmaListeningPortMin=" + rdmaListeningPortMin +
+                ", rdmaListeningPortMax=" + rdmaListeningPortMax +
                 ", connectionRetries=" + connectionRetries +
                 ", connectionRetryDelay=" + connectionRetryDelay +
-                ", discoveryTimeout=" + discoveryTimeout +
-                ", cpDiscoveryRetries=" + cpDiscoveryRetries +
+                ", discoveryAddress='" + discoveryAddress + '\'' +
+                ", discoveryPort=" + discoveryPort +
                 ", timeout=" + timeout +
                 ", polling=" + polling +
                 ", maxWRs=" + maxWRs +

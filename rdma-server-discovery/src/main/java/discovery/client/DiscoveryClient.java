@@ -13,8 +13,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-public class ClientComponent {
-    private static final Logger logger = LoggerFactory.getLogger(ClientComponent.class.getSimpleName());
+public class DiscoveryClient {
+    private static final Logger logger = LoggerFactory.getLogger(DiscoveryClient.class.getSimpleName());
 
     private ServiceConnectionComponent serviceConnectionComponent;
     private PendingResponseManager responseManager;
@@ -28,7 +28,7 @@ public class ClientComponent {
     private int maxSge;
     private int maxNetworkBufferSize;
 
-    public ClientComponent(InetSocketAddress serviceAddress, int maxWorkRequests, int cqSize, int timeout,
+    public DiscoveryClient(InetSocketAddress serviceAddress, int maxWorkRequests, int cqSize, int timeout,
                            boolean polling, int maxSge, int maxNetworkBufferSize) {
         this.serviceAddress = serviceAddress;
         this.maxWorkRequests = maxWorkRequests;

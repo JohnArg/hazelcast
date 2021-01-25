@@ -1,7 +1,5 @@
 package com.hazelcast.internal.server;
 
-import com.hazelcast.instance.EndpointQualifier;
-
 /**
  * A very minimal interface for implementing servers. Since socket-based connections differ
  * from RDMA connections, this interface is meant to be extended according to the specific
