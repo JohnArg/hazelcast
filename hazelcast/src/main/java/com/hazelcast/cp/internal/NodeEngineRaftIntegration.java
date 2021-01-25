@@ -94,7 +94,7 @@ final class NodeEngineRaftIntegration implements RaftIntegration{
         this.linearizableReadOptimizationEnabled = nodeEngine.getProperties()
                                                              .getBoolean(RAFT_LINEARIZABLE_READ_OPTIMIZATION_ENABLED);
         this.rdmaService = nodeEngine.getRdmaService();
-        this.rdmaLogger = new RdmaLogger(nodeEngine.getLogger(NodeEngineRaftIntegration.class));
+        this.rdmaLogger = new RdmaLogger(nodeEngine.getLogger(NodeEngineRaftIntegration.class.getSimpleName()));
     }
 
     @Override

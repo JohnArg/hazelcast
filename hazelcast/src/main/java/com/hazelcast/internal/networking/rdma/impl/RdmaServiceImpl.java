@@ -152,11 +152,11 @@ public class RdmaServiceImpl implements RdmaService, RaftManagedService, RaftNod
      * ****************************************************************/
 
     @Override
-    public boolean isConnectedWithRdma(Address address){
+    public boolean isConnectedWithRdma(Address address, boolean isTcpAddress){
         if(rdmaServer != null){
             RdmaConnectionManager<ActiveRdmaCommunicator> connectionManager = rdmaServer.getConnectionManager();
             if(connectionManager != null){
-                return connectionManager.isConnectedWithRdma(address);
+                return connectionManager.isConnectedWithRdma(address, isTcpAddress);
             }
         }
         return false;

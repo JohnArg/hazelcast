@@ -495,7 +495,7 @@ class OperationRunnerImpl extends OperationRunner implements StaticMetricsProvid
         if (node.clusterService.getMember(op.getCallerAddress()) != null
                 || isJoinOperation(op)
                 || isWanReplicationOperation(op)
-                || rdmaService.isConnectedWithRdma(op.getCallerAddress())) {
+                || rdmaService.isConnectedWithRdma(op.getCallerAddress(), false)) {
             return true;
         }
         Exception error = new CallerNotMemberException(thisAddress, op.getCallerAddress(), op.getPartitionId(),

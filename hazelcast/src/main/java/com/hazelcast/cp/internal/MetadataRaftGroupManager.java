@@ -38,6 +38,8 @@ import com.hazelcast.cp.internal.raftop.metadata.PublishActiveCPMembersOp;
 import com.hazelcast.cp.internal.raftop.metadata.TerminateRaftNodesOp;
 import com.hazelcast.internal.cluster.Versions;
 import com.hazelcast.internal.metrics.Probe;
+import com.hazelcast.internal.networking.rdma.RdmaService;
+import com.hazelcast.internal.networking.rdma.impl.RdmaServiceImpl;
 import com.hazelcast.internal.util.BiTuple;
 import com.hazelcast.internal.util.Clock;
 import com.hazelcast.logging.ILogger;
@@ -1197,10 +1199,12 @@ public class MetadataRaftGroupManager implements SnapshotAwareService<MetadataRa
         private long lastLoggingTime;
         private volatile boolean cancelled;
         private volatile DiscoveryTaskState state;
+        private RdmaService rdmaService;
 
         DiscoverInitialCPMembersTask(boolean terminateOnDiscoveryFailure) {
             this.terminateOnDiscoveryFailure = terminateOnDiscoveryFailure;
             state = DiscoveryTaskState.SCHEDULED;
+            rdmaService = nodeEngine.getRdmaService();
         }
 
         @Override
@@ -1244,6 +1248,14 @@ public class MetadataRaftGroupManager implements SnapshotAwareService<MetadataRa
 
                 if (rescheduleIfCPMemberCountNotSatisfied(members)) {
                     return;
+                }
+
+                // Check if all those members have also established RDMA connections
+                for (Member member : latestMembers) {
+                    if(!rdmaService.isConnectedWithRdma(member.getAddress(), true)){
+                        // reschedule until all latestMembers are also connected with RDMA
+                        reschedule();
+                    }
                 }
 
                 CPMemberInfo localMemberCandidate = new CPMemberInfo(nodeEngine.getLocalMember());
@@ -1309,6 +1321,15 @@ public class MetadataRaftGroupManager implements SnapshotAwareService<MetadataRa
                 return true;
             }
             return false;
+        }
+
+        private void reschedule(){
+            long now = Clock.currentTimeMillis();
+            if (now - lastLoggingTime >= DISCOVER_INITIAL_CP_MEMBERS_TASK_LOGGING_DELAY_MILLIS) {
+                lastLoggingTime = now;
+                logger.info("CP Subsystem discovery is being rescheduled");
+            }
+            scheduleSelf();
         }
 
         private void scheduleSelf() {

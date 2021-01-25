@@ -209,10 +209,16 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
     }
 
     @Override
-    public boolean isConnectedWithRdma(Address address){
+    public boolean isConnectedWithRdma(Address address, boolean isTcpAddress){
         try {
-            InetSocketAddress socketAddress = address.getInetSocketAddress();
-            return getRdmaServerConnection(socketAddress) != null;
+            // if we're given a TCP address
+            if(isTcpAddress){
+                RdmaServerConnection rdmaServerConnection = tcpToRdmaMap.get(address.getInetSocketAddress());
+                return rdmaServerConnection != null;
+            }else{// if we're given an RDMA address
+                InetSocketAddress socketAddress = address.getInetSocketAddress();
+                return getRdmaServerConnection(socketAddress) != null;
+            }
         } catch (UnknownHostException e) {
             logger.severe("Cannot translate Address to InetSocketAddress.", e);
         }
@@ -225,7 +231,8 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
         checkNotNull(target, "target can't be null");
         logger.info("Sending packet.");
         try {
-            RdmaServerConnection remoteConnection = getRdmaServerConnection(target.getInetSocketAddress());
+            // find the RDMA connection from the TCP address
+            RdmaServerConnection remoteConnection = tcpToRdmaMap.get(target.getInetSocketAddress());
             return writeToConnection(remoteConnection, packet);
         } catch (UnknownHostException e) {
             logger.severe(e);

@@ -30,7 +30,10 @@ public interface RdmaService {
     /**
      * Check if there is an RDMA connection towards this address.
      * @param address the address to check against.
-     * @return true if there is an RDMA connection, false otherwise.
+     * @param isTcpAddress whether this is a TCP address. If so, the corresponding RDMA
+     *                      address of the member will be retrieved, if it exists.
+     *                      Otherwise, the provided address is considered an RDMA address.
+     *@return true if there is an RDMA connection, false otherwise.
      */
-    boolean isConnectedWithRdma(Address address);
+    boolean isConnectedWithRdma(Address address, boolean isTcpAddress);
 }

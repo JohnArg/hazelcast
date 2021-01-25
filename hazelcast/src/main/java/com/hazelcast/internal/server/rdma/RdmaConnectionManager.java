@@ -34,15 +34,18 @@ public interface RdmaConnectionManager<T extends RdmaEndpoint> extends MinimalSe
 
     /**
      * Get a connection from a {@link InetAddress#toString()  InetAddress String}.
-     * @param socketAddress the address to look for.
+     * @param rdmaAddress the RDMA address to look for.
      * @return the connection requested or null if no such connection exists.
      */
-    RdmaServerConnection getRdmaServerConnection(InetSocketAddress socketAddress);
+    RdmaServerConnection getRdmaServerConnection(InetSocketAddress rdmaAddress);
 
     /**
      * Check if there is an RDMA connection towards this address.
      * @param address the address to check against.
+     * @param isTcpAddress whether this is a TCP address. If so, the corresponding RDMA
+     *                     address of the member will be retrieved, if it exists.
+     *                     Otherwise, the provided address is considered an RDMA address.
      * @return true if there is an RDMA connection, false otherwise.
      */
-    boolean isConnectedWithRdma(Address address);
+    boolean isConnectedWithRdma(Address address, boolean isTcpAddress);
 }
