@@ -261,6 +261,7 @@ final class NodeEngineRaftIntegration implements RaftIntegration{
             rdmaLogger.info("Sending with RDMA");
             return rdmaService.send(operation, targetMember.getAddress());
         }
+        rdmaLogger.info("Sending with TCP ================================");
         return operationService.send(operation, targetMember.getAddress());
     }
 

@@ -24,15 +24,12 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
     private RdmaLogger logger;
     private RdmaConnectionManagerImpl connectionManager;
     private Consumer<Packet> packetDispatcher;
-    private InetSocketAddress localRdmaServerAddress;
 
-    public NetRequestCompletionHandler(NodeEngine engine, RdmaConnectionManagerImpl connectionManager,
-                                       InetSocketAddress localRdmaServerAddress) {
+    public NetRequestCompletionHandler(NodeEngine engine, RdmaConnectionManagerImpl connectionManager) {
         this.nodeEngine = engine;
         this.logger = new RdmaLogger(engine.getLogger(NetRequestCompletionHandler.class));
         this.connectionManager = connectionManager;
         this.packetDispatcher = connectionManager.getPacketDispatcher();
-        this.localRdmaServerAddress = localRdmaServerAddress;
     }
 
     @Override
@@ -52,9 +49,6 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
             try {
                 // we don't know if the message came from an outbound or inbound connection
                 senderAddress = (InetSocketAddress) communicator.getDstAddr();
-                if(senderAddress.equals(localRdmaServerAddress)){
-                    senderAddress = (InetSocketAddress) communicator.getSrcAddr();
-                }
             }catch (IOException e){
                 receiveProxy.releaseWorkRequest();
                 logger.severe("Cannot retrieve socket address from communicator.", e);

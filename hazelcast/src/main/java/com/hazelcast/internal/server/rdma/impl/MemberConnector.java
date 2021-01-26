@@ -29,6 +29,7 @@ public class MemberConnector implements Runnable{
 
     private RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup;
     private ConcurrentMap<InetSocketAddress, RdmaServerConnection> tcpToRdmaMap;
+    ConcurrentMap<InetSocketAddress, RdmaServerConnection> rdmaAddressConnectionMap;
     private RdmaConfig rdmaConfig;
     private Collection<ServerIdentifier> membersToConnectTo;
     private ServerIdentifier localServerIdentifier;
@@ -38,11 +39,13 @@ public class MemberConnector implements Runnable{
 
     public MemberConnector(RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup,
                            ConcurrentMap<InetSocketAddress, RdmaServerConnection> tcpToRdmaMap,
+                           ConcurrentMap<InetSocketAddress, RdmaServerConnection> rdmaAddressConnectionMap,
                            RdmaConfig rdmaConfig, Collection<ServerIdentifier> membersToConnectTo,
                            ServerIdentifier localServerIdentifier,
                            NodeEngine engine, RdmaConnectionManager<ActiveRdmaCommunicator> connectionManager) {
         this.endpointGroup = endpointGroup;
         this.tcpToRdmaMap = tcpToRdmaMap;
+        this.rdmaAddressConnectionMap = rdmaAddressConnectionMap;
         this.rdmaConfig = rdmaConfig;
         this.membersToConnectTo = membersToConnectTo;
         this.localServerIdentifier = localServerIdentifier;
@@ -61,13 +64,13 @@ public class MemberConnector implements Runnable{
         for (ServerIdentifier server : membersToConnectTo) {
             ActiveRdmaCommunicator communicator = null;
             InetSocketAddress serverAddress = server.getRdmaAddress();
+            RdmaServerConnection rdmaServerConnection = null;
             for(int trial=0; trial < retries; trial++) {
                 try {
                     communicator = endpointGroup.createEndpoint();
                     communicator.connect(serverAddress, timeout);
-                    RdmaServerConnection rdmaServerConnection = new RdmaServerConnection(engine,communicator,
+                    rdmaServerConnection = new RdmaServerConnection(engine,communicator,
                             connectionManager, new Address(serverAddress), server);
-                    tcpToRdmaMap.put(server.getTcpAddress(), rdmaServerConnection);
                     break;
                 } catch (Exception e) {
                     logger.severe("Cannot establish connection to address : " + serverAddress, e);
@@ -83,6 +86,10 @@ public class MemberConnector implements Runnable{
                 } catch (InterruptedException e) {
                     // ignore
                 }
+            }
+            if(rdmaServerConnection != null){
+                tcpToRdmaMap.put(server.getTcpAddress(), rdmaServerConnection);
+                rdmaAddressConnectionMap.put(server.getRdmaAddress(), rdmaServerConnection);
             }
         }
         // Tell the remote members you connected to who you are ===========================

@@ -40,8 +40,7 @@ public class RdmaTwoSidedCommunicatorFactory implements RdmaEndpointFactory<Acti
                 .setBufferManager(new TwoSidedBufferManager(maxBufferSize, maxWorkRequests))
                 .setProxyProvider(new QueuedProxyProvider(maxWorkRequests))
                 .setSvcManager(new TwoSidedSVCManager(maxBufferSize, maxWorkRequests))
-                .setWorkCompletionHandler(new NetRequestCompletionHandler(engine, connectionManager,
-                        connectionManager.getLocalRdmaAddress()));
+                .setWorkCompletionHandler(new NetRequestCompletionHandler(engine, connectionManager));
         
         return new ActiveRdmaCommunicator(endpointGroup, id, serverSide, dependencies);
     }

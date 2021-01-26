@@ -61,6 +61,7 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
     * RDMA address, making it possible to retrieve this information and store it to the following
     * Map.*/
     private ConcurrentMap<InetSocketAddress, RdmaServerConnection> tcpToRdmaMap;
+    private ConcurrentMap<InetSocketAddress, RdmaServerConnection> rdmaAddressConnectionMap;
     private ConcurrentMap<InetSocketAddress, ActiveRdmaCommunicator> inboundConnections;
     private Thread memberAcceptorThread;
     private Thread memberConnectorThread;
@@ -89,6 +90,7 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
     private void initializeConnectionDataStructures(){
         tcpToRdmaMap = new ConcurrentHashMap<>();
         inboundConnections = new ConcurrentHashMap<>();
+        rdmaAddressConnectionMap = new ConcurrentHashMap<>();
     }
 
     // bind server endpoint to configured address.
@@ -103,12 +105,13 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
         for(int port = minPort; port <= maxPort; port ++){
             localRdmaAddress = new InetSocketAddress(rdmaAddressStr, port);
             try {
+                serverEndpoint = endpointGroup.createServerEndpoint();
                 serverEndpoint.bind(localRdmaAddress, serverBacklog);
                 logger.info("Server bound to address : " + localRdmaAddress.toString());
                 success = true;
                 break;
             } catch (Exception e) {
-                // ignore for now
+                //ignore
             }
         }
         if(!success){
@@ -127,7 +130,6 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
                     (RdmaActiveEndpointGroup<ActiveRdmaCommunicator>) endpointGroup,
                     rdmaConfig.getMaxBufferSize(), rdmaConfig.getMaxWRs(), engine, this);
             endpointGroup.init(serverEndpointFactory);
-            serverEndpoint = endpointGroup.createServerEndpoint();
             // try to bind server to a port
             if(!bindServer()){
                 rdmaService.setState(RdmaServiceState.COMMUNICATIONS_NOT_POSSIBLE);
@@ -151,7 +153,8 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
                     this));
             registeredServers.remove(localServerIdentifier);
             memberConnectorThread = new Thread(new MemberConnector(endpointGroup, tcpToRdmaMap,
-                    rdmaConfig, registeredServers, localServerIdentifier, engine, this));
+                    rdmaAddressConnectionMap, rdmaConfig, registeredServers, localServerIdentifier, engine,
+                    this));
         } catch (Exception e) {
             logger.severe(e);
             return false;
@@ -172,7 +175,9 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
 
     @Override
     public void stopAndRemoveConnections(){
-
+        if((discoveryAPI != null) && (localServerIdentifier != null)){
+            discoveryAPI.unregisterServer(localServerIdentifier);
+        }
         for(Map.Entry<InetSocketAddress, ActiveRdmaCommunicator> connection : inboundConnections.entrySet()){
             try{
                 connection.getValue().close();
@@ -192,20 +197,8 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
     }
 
     @Override
-    public RdmaServerConnection getRdmaServerConnection(InetSocketAddress socketAddress){
-        Collection<RdmaServerConnection> rdmaServerConnections = tcpToRdmaMap.values();
-        for(RdmaServerConnection connection : rdmaServerConnections){
-            InetSocketAddress rdmaAddress = null;
-            try {
-                rdmaAddress = connection.getRemoteAddress().getInetSocketAddress();
-                if(connection.getRemoteAddress().getInetSocketAddress().equals(socketAddress)){
-                    return connection;
-                }
-            } catch (UnknownHostException e) {
-                logger.severe("Cannot get InetSocketAddress from RdmaServerConnection", e);
-            }
-        }
-        return null;
+    public RdmaServerConnection getRdmaServerConnection(InetSocketAddress rdmaAddress){
+        return rdmaAddressConnectionMap.get(rdmaAddress);
     }
 
     @Override
@@ -216,8 +209,9 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
                 RdmaServerConnection rdmaServerConnection = tcpToRdmaMap.get(address.getInetSocketAddress());
                 return rdmaServerConnection != null;
             }else{// if we're given an RDMA address
-                InetSocketAddress socketAddress = address.getInetSocketAddress();
-                return getRdmaServerConnection(socketAddress) != null;
+                RdmaServerConnection rdmaServerConnection = rdmaAddressConnectionMap
+                        .get(address.getInetSocketAddress());
+                return rdmaServerConnection != null;
             }
         } catch (UnknownHostException e) {
             logger.severe("Cannot translate Address to InetSocketAddress.", e);
@@ -233,6 +227,9 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
         try {
             // find the RDMA connection from the TCP address
             RdmaServerConnection remoteConnection = tcpToRdmaMap.get(target.getInetSocketAddress());
+            if(remoteConnection == null){
+                return false;
+            }
             return writeToConnection(remoteConnection, packet);
         } catch (UnknownHostException e) {
             logger.severe(e);
@@ -287,7 +284,15 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
         RdmaServerConnection rdmaServerConnection = new RdmaServerConnection(engine, communicator,
                 this, new Address(senderAddress), serverIdentifier);
         tcpToRdmaMap.put(serverIdentifier.getTcpAddress(), rdmaServerConnection);
-        logger.info("Registered connection for member : " + serverIdentifier);
+        /* Save the sender address and not the server identifier RDMA address!!!
+         The Sender address is the address used to send us a message, since the remote side connected
+         to us. We will be responding to the same address. The server identifier RDMA address is the
+         address that the remote site is listening to connections. We don't need this, since they
+         connected to us already.
+         */
+        rdmaAddressConnectionMap.put(senderAddress, rdmaServerConnection);
+        logger.info("Registered connection for member with identifier : " + serverIdentifier +
+                        " and RDMA address : " + senderAddress);
     }
 
     /* *************************************************************************
