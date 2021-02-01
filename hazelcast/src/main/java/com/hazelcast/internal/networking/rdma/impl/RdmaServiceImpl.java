@@ -13,6 +13,8 @@ import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.serialization.InternalSerializationService;
 import com.hazelcast.internal.server.rdma.RdmaConnectionManager;
 import com.hazelcast.internal.server.rdma.impl.RdmaServerImpl;
+import com.hazelcast.internal.services.MembershipAwareService;
+import com.hazelcast.internal.services.MembershipServiceEvent;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.spi.impl.operationservice.Operation;
@@ -30,7 +32,7 @@ import static com.hazelcast.internal.networking.rdma.RdmaServiceState.*;
  * The service is meant to be registered in a {@link com.hazelcast.spi.impl.NodeEngine} and listen to
  * membership changes.
  */
-public class RdmaServiceImpl implements RdmaService, RaftManagedService, RaftNodeLifecycleAwareService{
+public class RdmaServiceImpl implements RdmaService, RaftManagedService, MembershipAwareService {
     public static final String SERVICE_NAME = "hz:rdma:raft";
     private static final String RDMA_PROPERTIES_FILE = "rdma.properties";
 
@@ -136,15 +138,17 @@ public class RdmaServiceImpl implements RdmaService, RaftManagedService, RaftNod
     }
 
     @Override
-    public void onRaftNodeTerminated(CPGroupId groupId) {
-        logger.info("Node "+ localMember.getSocketAddress().getHostString()
-                +" with group id "+groupId+ " is terminated.");
+    public void memberAdded(MembershipServiceEvent event) {
+        // ignore, they'll connect to us with RDMA
     }
 
     @Override
-    public void onRaftNodeSteppedDown(CPGroupId groupId) {
-        logger.info("Node "+ localMember.getSocketAddress().getHostString()
-                +" with group id "+groupId+ " is stepped down.");
+    public void memberRemoved(MembershipServiceEvent event) {
+        // we don't need to keep the connection
+        if(rdmaConfig.isRdmaEnabled()){
+            Address memberAddress = event.getMember().getAddress();
+            rdmaServer.getConnectionManager().removeConnection(memberAddress, true);
+        }
     }
 
     /* *****************************************************************
@@ -167,4 +171,7 @@ public class RdmaServiceImpl implements RdmaService, RaftManagedService, RaftNod
         return rdmaServer.send(op, target);
     }
 
+    public RdmaConfig getRdmaConfig() {
+        return rdmaConfig;
+    }
 }

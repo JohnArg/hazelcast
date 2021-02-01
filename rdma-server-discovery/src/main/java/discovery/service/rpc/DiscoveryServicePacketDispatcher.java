@@ -28,10 +28,10 @@ public class DiscoveryServicePacketDispatcher implements PacketDispatcher<Discov
     private RpcOperationInvocator unregisterServerApiInvocator;
     private RpcOperationInvocator getRegisteredServersApiInvocator;
 
-    public DiscoveryServicePacketDispatcher(DiscoveryApi rdmaDiscoveryApi, ExecutorService workersExecutor) {
-        this.registerServerApiInvocator = new RegisterServerApiInvocator(workersExecutor, rdmaDiscoveryApi);
-        this.unregisterServerApiInvocator = new UnregisterServerApiInvocator(workersExecutor, rdmaDiscoveryApi);
-        this.getRegisteredServersApiInvocator = new GetRegisteredServersApiInvocator(workersExecutor, rdmaDiscoveryApi);
+    public DiscoveryServicePacketDispatcher(DiscoveryApi rdmaDiscoveryApi) {
+        this.registerServerApiInvocator = new RegisterServerApiInvocator(rdmaDiscoveryApi);
+        this.unregisterServerApiInvocator = new UnregisterServerApiInvocator(rdmaDiscoveryApi);
+        this.getRegisteredServersApiInvocator = new GetRegisteredServersApiInvocator(rdmaDiscoveryApi);
     }
 
     @Override

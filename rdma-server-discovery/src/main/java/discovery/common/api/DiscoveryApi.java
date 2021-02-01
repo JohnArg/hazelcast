@@ -1,5 +1,7 @@
 package discovery.common.api;
 
+import jarg.rdmarpc.rpc.exception.RpcExecutionException;
+
 import java.util.Set;
 
 /**
@@ -12,19 +14,19 @@ public interface DiscoveryApi {
      * @param identifier represents the server to register.
      * @return the registered servers.
      */
-    Set<ServerIdentifier> registerServer(ServerIdentifier identifier);
+    Set<ServerIdentifier> registerServer(ServerIdentifier identifier) throws RpcExecutionException;
 
     /**
      * Unregister a server from this registry.
      * @param identifier represents the server to register.
      * @return true on success, false otherwise.
      */
-    boolean unregisterServer(ServerIdentifier identifier);
+    boolean unregisterServer(ServerIdentifier identifier) throws RpcExecutionException;
 
     /**
      * Get all the registered servers.
      * @return the addresses of the registered servers.
      */
-    Set<ServerIdentifier> getRegisteredServers();
+    Set<ServerIdentifier> getRegisteredServers() throws RpcExecutionException;
 
 }

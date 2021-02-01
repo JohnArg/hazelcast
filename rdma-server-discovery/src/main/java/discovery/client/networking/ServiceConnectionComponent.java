@@ -20,23 +20,26 @@ public class ServiceConnectionComponent {
     private ActiveRdmaCommunicator rdmaCommunicator;
     private InetSocketAddress serviceAddress;
     // Rdma endpoint properties
-    private int maxWorkRequests;
-    private int cqSize;
     private int timeout;
-    private boolean polling;
-    private int maxSge;
-    private int maxNetworkBufferSize;
+    private Boolean initialized;
 
 
     public ServiceConnectionComponent(InetSocketAddress serviceAddress, int maxWorkRequests,
                                       int cqSize, int timeout, boolean polling, int maxSge, int maxNetworkBufferSize) {
         this.serviceAddress = serviceAddress;
-        this.maxWorkRequests = maxWorkRequests;
-        this.cqSize = cqSize;
         this.timeout = timeout;
-        this.polling = polling;
-        this.maxSge = maxSge;
-        this.maxNetworkBufferSize = maxNetworkBufferSize;
+        // An endpoint group is needed to create RDMA endpoints
+        try {
+            endpointGroup = new RdmaActiveEndpointGroup<>(timeout, polling, maxWorkRequests, maxSge, cqSize);
+            // The group requires an endpoint factory to create the endpoints
+            ClientCommunicatorFactory communicatorFactory = new ClientCommunicatorFactory(endpointGroup,
+                    maxNetworkBufferSize, maxWorkRequests);
+            endpointGroup.init(communicatorFactory);
+            initialized = true;
+        } catch (IOException e) {
+            logger.error("Cannot create endpoint group.", e);
+            initialized = false;
+        }
     }
 
     /**
@@ -44,17 +47,10 @@ public class ServiceConnectionComponent {
      * @return true on success or false on failure.
      */
     public boolean connect(){
-        // An endpoint group is needed to create RDMA endpoints
-        try {
-            endpointGroup = new RdmaActiveEndpointGroup<>(timeout, polling, maxWorkRequests, maxSge, cqSize);
-        } catch (IOException e) {
-            logger.error("Cannot create endpoint group.", e);
+        if(!initialized){
+            logger.error("Initialization failed. Connections not possible.");
             return false;
         }
-        // The group requires an endpoint factory to create the endpoints
-        ClientCommunicatorFactory communicatorFactory = new ClientCommunicatorFactory(endpointGroup,
-                maxNetworkBufferSize, maxWorkRequests);
-        endpointGroup.init(communicatorFactory);
         // Get a client endpoint
         try {
             rdmaCommunicator = endpointGroup.createEndpoint();
@@ -71,6 +67,14 @@ public class ServiceConnectionComponent {
         return true;
     }
 
+    public void disconnect(){
+        try {
+            rdmaCommunicator.close();
+        } catch (IOException | InterruptedException e) {
+            logger.error("Cannot close endpoint.", e);
+        }
+    }
+
     public void shutdown(){
         try {
             rdmaCommunicator.close();
@@ -78,10 +82,6 @@ public class ServiceConnectionComponent {
         } catch (IOException | InterruptedException e) {
            logger.error("Cannot close endpoint.", e);
         }
-    }
-
-    public void finalize(){
-        shutdown();
     }
 
     public ActiveRdmaCommunicator getRdmaCommunicator() {

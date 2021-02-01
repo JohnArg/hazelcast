@@ -1199,12 +1199,12 @@ public class MetadataRaftGroupManager implements SnapshotAwareService<MetadataRa
         private long lastLoggingTime;
         private volatile boolean cancelled;
         private volatile DiscoveryTaskState state;
-        private RdmaService rdmaService;
+        private RdmaServiceImpl rdmaService;
 
         DiscoverInitialCPMembersTask(boolean terminateOnDiscoveryFailure) {
             this.terminateOnDiscoveryFailure = terminateOnDiscoveryFailure;
             state = DiscoveryTaskState.SCHEDULED;
-            rdmaService = nodeEngine.getRdmaService();
+            rdmaService = (RdmaServiceImpl) nodeEngine.getRdmaService();
         }
 
         @Override
@@ -1250,11 +1250,13 @@ public class MetadataRaftGroupManager implements SnapshotAwareService<MetadataRa
                     return;
                 }
 
-                // Check if all those members have also established RDMA connections
-                for (Member member : latestMembers) {
-                    if(!rdmaService.isConnectedWithRdma(member.getAddress(), true)){
-                        // reschedule until all latestMembers are also connected with RDMA
-                        reschedule();
+                if(rdmaService.getRdmaConfig().isRdmaEnabled()){
+                    // Check if all those members have also established RDMA connections
+                    for (Member member : latestMembers) {
+                        if(!rdmaService.isConnectedWithRdma(member.getAddress(), true)){
+                            // reschedule until all latestMembers are also connected with RDMA
+                            reschedule();
+                        }
                     }
                 }
 

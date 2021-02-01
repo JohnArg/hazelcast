@@ -18,8 +18,8 @@ public class DiscoveryClient {
 
     private ServiceConnectionComponent serviceConnectionComponent;
     private PendingResponseManager responseManager;
-    private RequestIdGenerator<Long> requestIdGenerator;
     private InetSocketAddress serviceAddress;
+    private int rpcTimeout;
     // Rdma endpoint properties
     private int maxWorkRequests;
     private int cqSize;
@@ -28,9 +28,10 @@ public class DiscoveryClient {
     private int maxSge;
     private int maxNetworkBufferSize;
 
-    public DiscoveryClient(InetSocketAddress serviceAddress, int maxWorkRequests, int cqSize, int timeout,
-                           boolean polling, int maxSge, int maxNetworkBufferSize) {
+    public DiscoveryClient(InetSocketAddress serviceAddress, int rpcTimeout, int maxWorkRequests,
+                           int cqSize, int timeout, boolean polling, int maxSge, int maxNetworkBufferSize) {
         this.serviceAddress = serviceAddress;
+        this.rpcTimeout = rpcTimeout;
         this.maxWorkRequests = maxWorkRequests;
         this.cqSize = cqSize;
         this.timeout = timeout;
@@ -42,14 +43,15 @@ public class DiscoveryClient {
     }
 
     public DiscoveryServiceProxy generateDiscoveryServiceProxy(){
-        serviceConnectionComponent.connect();
-        ActiveRdmaCommunicator communicator = serviceConnectionComponent.getRdmaCommunicator();
-        ClientCommunicatorDependencies dependencies = (ClientCommunicatorDependencies)
-                communicator.getDependencies();
-        responseManager = dependencies.getResponseManager();
-        requestIdGenerator = new DiscoveryRequestIdGenerator(0);
-        return new DiscoveryServiceProxy(serviceConnectionComponent.getRdmaCommunicator(), responseManager,
-                requestIdGenerator);
+        if(serviceConnectionComponent.connect()){
+            ActiveRdmaCommunicator communicator = serviceConnectionComponent.getRdmaCommunicator();
+            ClientCommunicatorDependencies dependencies = (ClientCommunicatorDependencies)
+                    communicator.getDependencies();
+            responseManager = dependencies.getResponseManager();
+            return new DiscoveryServiceProxy(serviceConnectionComponent.getRdmaCommunicator(), responseManager,
+                    new DiscoveryRequestIdGenerator(0), rpcTimeout);
+        }
+        return null;
     }
 
     public InetSocketAddress getClientAddress(){
@@ -61,6 +63,8 @@ public class DiscoveryClient {
         }
         return address;
     }
+
+    public void disconnect(){ serviceConnectionComponent.disconnect(); }
 
     public void shutDown(){
         serviceConnectionComponent.shutdown();

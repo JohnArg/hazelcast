@@ -8,6 +8,7 @@ import discovery.common.serializers.ServerIdentifierSetSerializer;
 import discovery.service.api.DiscoveryApiImpl;
 import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.rdmarpc.rpc.exception.RpcExecutionException;
 import jarg.rdmarpc.rpc.packets.RpcMessageType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -28,9 +29,8 @@ public class GetRegisteredServersApiInvocatorTest {
     @DisplayName("Invoking getRegisteredServers API Test")
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
     public void testApiCall(){
-        ExecutorService workers = Executors.newFixedThreadPool(2);
         DiscoveryApiImpl api = new DiscoveryApiImpl();
-        GetRegisteredServersApiInvocator apiInvocator = new GetRegisteredServersApiInvocator(workers, api);
+        GetRegisteredServersApiInvocator apiInvocator = new GetRegisteredServersApiInvocator(api);
         MockPacketFactory packetFactory = new MockPacketFactory(200);
 
         // try with no registered servers --------------
@@ -45,16 +45,25 @@ public class GetRegisteredServersApiInvocatorTest {
         server2.setTcpAddress(new InetSocketAddress(4000));
         server3.setRdmaAddress(new InetSocketAddress(6000));
         server3.setTcpAddress(new InetSocketAddress(6000));
-        api.registerServer(server1);
-        api.registerServer(server2);
-        api.registerServer(server3);
+        try {
+            api.registerServer(server1);
+            api.registerServer(server2);
+            api.registerServer(server3);
+        } catch (RpcExecutionException e) {
+            e.printStackTrace();
+            fail();
+        }
+
 
         apiInvokerTest(api, packetFactory, apiInvocator);
         // unregister a server and try ----------------------
-        api.unregisterServer(server2);
+        try {
+            api.unregisterServer(server2);
+        } catch (RpcExecutionException e) {
+            e.printStackTrace();
+            fail();
+        }
         apiInvokerTest(api, packetFactory, apiInvocator);
-
-        workers.shutdown();
     }
 
     private void apiInvokerTest(DiscoveryApiImpl api, MockPacketFactory packetFactory,
@@ -83,7 +92,14 @@ public class GetRegisteredServersApiInvocatorTest {
                 .getWorkRequestProxy());
         assertDoesNotThrow(()->{setSerializer.readFromWorkRequestBuffer();});
         Set<ServerIdentifier> identifiers = setSerializer.getIdentifiers();
-        assertEquals(api.getRegisteredServers(), identifiers);
+        Set<ServerIdentifier> expectedServers = null;
+        try {
+            expectedServers = api.getRegisteredServers();
+        } catch (RpcExecutionException e) {
+            e.printStackTrace();
+            fail();
+        }
+        assertEquals(expectedServers, identifiers);
     }
 
 }

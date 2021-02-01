@@ -48,4 +48,13 @@ public interface RdmaConnectionManager<T extends RdmaEndpoint> extends MinimalSe
      * @return true if there is an RDMA connection, false otherwise.
      */
     boolean isConnectedWithRdma(Address address, boolean isTcpAddress);
+
+    /**
+     * Remove the {@link RdmaServerConnection} corresponding to the provided address.
+     * @param address the address to check against.
+     * @param isTcpAddress whether this is a TCP address or an RDMA address.
+     *                     This clarification is required to find the corresponding {@link RdmaServerConnection},
+     *                     since RDMA is used alongside TCP.
+     */
+    void removeConnection(Address address, boolean isTcpAddress);
 }

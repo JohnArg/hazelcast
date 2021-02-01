@@ -10,6 +10,7 @@ import jarg.rdmarpc.networking.communicators.RdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
 import jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType;
 import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
+import jarg.rdmarpc.rpc.exception.RpcExecutionException;
 import jarg.rdmarpc.rpc.packets.RpcMessageType;
 import jarg.rdmarpc.rpc.request.RequestIdGenerator;
 import org.slf4j.Logger;
@@ -18,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Acts the client stub for discovery RPCs.
@@ -29,16 +32,18 @@ public class DiscoveryServiceProxy implements DiscoveryApi {
     private RdmaCommunicator rdmaCommunicator;
     private DiscoveryRpcPacketFactory packetFactory;
     private PendingResponseManager pendingResponseManager;
+    private int rpcTimeout;
 
     public DiscoveryServiceProxy(RdmaCommunicator rdmaCommunicator, PendingResponseManager pendingResponseManager,
-                                 RequestIdGenerator<Long> requestIdGenerator) {
+                                 RequestIdGenerator<Long> requestIdGenerator, int rpcTimeout) {
         this.rdmaCommunicator = rdmaCommunicator;
         this.pendingResponseManager = pendingResponseManager;
         this.packetFactory = new DiscoveryRpcPacketFactory(requestIdGenerator);
+        this.rpcTimeout = rpcTimeout;
     }
 
     @Override
-    public Set<ServerIdentifier> registerServer(ServerIdentifier identifier) {
+    public Set<ServerIdentifier> registerServer(ServerIdentifier identifier) throws RpcExecutionException {
         DiscoveryPacket requestPacket = generateRequestPacket(DiscoveryOperationType.REGISTER_SERVER);
         // Send request parameters to serializer
         identifier.setWorkRequestProxy(requestPacket.getWorkRequestProxy());
@@ -47,8 +52,7 @@ public class DiscoveryServiceProxy implements DiscoveryApi {
             requestPacket.writeToWorkRequestBuffer(identifier);
         } catch (RpcDataSerializationException e) {
             requestPacket.getWorkRequestProxy().releaseWorkRequest();
-            logger.error("Cannot serialize RPC packet.", e);
-            return null;
+            throw new RpcExecutionException("Cannot serialize RPC packet.", e);
         }
         // Save a CompletableFuture for the RPC response - Do this BEFORE sending the request!
         long operationId = requestPacket.getOperationId();
@@ -59,17 +63,16 @@ public class DiscoveryServiceProxy implements DiscoveryApi {
         requestPacket.getWorkRequestProxy().post();
         // Wait for response
         try {
-            members = pendingResponse.get();
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error("Failed to get response.", e);
+            members = pendingResponse.get(rpcTimeout, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new RpcExecutionException("Failed to execute RPC", e);
         }
         return members;
     }
 
     @Override
-    public boolean unregisterServer(ServerIdentifier identifier) {
+    public boolean unregisterServer(ServerIdentifier identifier) throws RpcExecutionException{
         DiscoveryPacket requestPacket = generateRequestPacket(DiscoveryOperationType.UNREGISTER_SERVER);
-        // Send request parameters to serializer
         // Send request parameters to serializer
         identifier.setWorkRequestProxy(requestPacket.getWorkRequestProxy());
         // Serialize the whole packet into the Work Request buffer
@@ -77,8 +80,7 @@ public class DiscoveryServiceProxy implements DiscoveryApi {
             requestPacket.writeToWorkRequestBuffer(identifier);
         } catch (RpcDataSerializationException e) {
             requestPacket.getWorkRequestProxy().releaseWorkRequest();
-            logger.error("Cannot serialize RPC packet.", e);
-            return false;
+            throw new RpcExecutionException("Cannot serialize RPC packet.", e);
         }
         // Save a CompletableFuture for the RPC response - Do this BEFORE sending the request!
         long operationId = requestPacket.getOperationId();
@@ -89,23 +91,22 @@ public class DiscoveryServiceProxy implements DiscoveryApi {
         requestPacket.getWorkRequestProxy().post();
         // Wait for response
         try {
-            success = pendingResponse.get();
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error("Failed to get response.", e);
+            success = pendingResponse.get(rpcTimeout, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new RpcExecutionException("Failed to execute RPC", e);
         }
         return success;
     }
 
     @Override
-    public Set<ServerIdentifier> getRegisteredServers() {
+    public Set<ServerIdentifier> getRegisteredServers() throws RpcExecutionException{
         DiscoveryPacket requestPacket = generateRequestPacket(DiscoveryOperationType.GET_SERVERS);
         // Serialize the whole packet into the Work Request buffer
         try {
             requestPacket.writeToWorkRequestBuffer(null);
         } catch (RpcDataSerializationException e) {
             requestPacket.getWorkRequestProxy().releaseWorkRequest();
-            logger.error("Cannot serialize RPC packet.", e);
-            return null;
+            throw new RpcExecutionException("Cannot serialize RPC packet.", e);
         }
         // Save a CompletableFuture for the RPC response - Do this BEFORE sending the request!
         long operationId = requestPacket.getOperationId();
@@ -116,9 +117,10 @@ public class DiscoveryServiceProxy implements DiscoveryApi {
         requestPacket.getWorkRequestProxy().post();
         // Wait for response
         try {
-            members = pendingResponse.get();
-        } catch (InterruptedException | ExecutionException e) {
+            members = pendingResponse.get(rpcTimeout, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
             logger.error("Failed to get response.", e);
+            throw new RpcExecutionException("Failed to execute RPC", e);
         }
         return members;
     }

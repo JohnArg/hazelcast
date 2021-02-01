@@ -34,13 +34,11 @@ public class DiscoveryService {
     private boolean polling;
     private int maxSge;
     private int maxNetworkBufferSize;
-    // Multi-threaded request processing
-    private ExecutorService requestProcessingWorkers;
 
 
     public DiscoveryService(InetSocketAddress listeningAddress, int backlog,
                             int maxWorkRequests, int cqSize, int timeout, boolean polling,
-                            int maxSge, int maxNetworkBufferSize, int processingThreadsNum) {
+                            int maxSge, int maxNetworkBufferSize) {
         this.listeningAddress = listeningAddress;
         this.backlog = backlog;
         this.maxWorkRequests = maxWorkRequests;
@@ -49,7 +47,6 @@ public class DiscoveryService {
         this.polling = polling;
         this.maxSge = maxSge;
         this.maxNetworkBufferSize = maxNetworkBufferSize;
-        this.requestProcessingWorkers = Executors.newFixedThreadPool(processingThreadsNum);
         inboundConnections = new ArrayList<>();
     }
 
@@ -62,7 +59,7 @@ public class DiscoveryService {
             return;
         }
         // The group requires an endpoint factory to create the endpoints
-        ServiceCommunicatorFactory communicatorFactory = new ServiceCommunicatorFactory(requestProcessingWorkers,
+        ServiceCommunicatorFactory communicatorFactory = new ServiceCommunicatorFactory(
                 endpointGroup, maxNetworkBufferSize, maxWorkRequests);
         endpointGroup.init(communicatorFactory);
         // Get a server endpoint
@@ -94,7 +91,6 @@ public class DiscoveryService {
     }
 
     public void shutdown(){
-        requestProcessingWorkers.shutdown();
         try {
             for (ActiveRdmaCommunicator clientEndpoint : inboundConnections) {
                 clientEndpoint.close();
@@ -105,10 +101,6 @@ public class DiscoveryService {
         } catch (IOException | InterruptedException e) {
             logger.error("Error in closing server endpoint.", e);
         }
-    }
-
-    public void finalize(){
-        shutdown();
     }
 
     public List<ActiveRdmaCommunicator> getInboundConnections() {

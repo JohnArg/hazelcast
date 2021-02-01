@@ -19,16 +19,13 @@ public class ServiceCommunicatorFactory implements RdmaEndpointFactory<ActiveRdm
 
     private DiscoveryApiImpl discoveryApi;
     // dependencies -------------
-    private ExecutorService requestProcessingWorkers;
     private RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup;
     private int maxBufferSize;
     private int maxWorkRequests;
 
-    public ServiceCommunicatorFactory(ExecutorService requestProcessingWorkers,
-                                      RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup,
+    public ServiceCommunicatorFactory(RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup,
                                       int maxBufferSize, int maxWorkRequests) {
         this.discoveryApi = new DiscoveryApiImpl();
-        this.requestProcessingWorkers = requestProcessingWorkers;
         this.endpointGroup = endpointGroup;
         this.maxBufferSize = maxBufferSize;
         this.maxWorkRequests = maxWorkRequests;
@@ -37,8 +34,7 @@ public class ServiceCommunicatorFactory implements RdmaEndpointFactory<ActiveRdm
     @Override
     public ActiveRdmaCommunicator createEndpoint(RdmaCmId id, boolean serverSide) throws IOException {
         // Create a packet dispatcher for this endpoint
-        DiscoveryServicePacketDispatcher packetDispatcher = new DiscoveryServicePacketDispatcher(discoveryApi,
-                requestProcessingWorkers);
+        DiscoveryServicePacketDispatcher packetDispatcher = new DiscoveryServicePacketDispatcher(discoveryApi);
         // Create endpoint dependencies
         DiscoveryCommunicatorDependencies dependencies = new DiscoveryCommunicatorDependencies();
         dependencies.setPacketDispatcher(packetDispatcher);

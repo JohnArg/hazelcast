@@ -19,13 +19,13 @@ import discovery.client.rpc.DiscoveryServiceProxy;
 import discovery.common.api.ServerIdentifier;
 import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.rdmarpc.rpc.exception.RpcExecutionException;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -138,13 +138,23 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
             // register to the discovery service and get the members connected so far
             InetAddress discoveryIp = InetAddress.getByName(rdmaConfig.getDiscoveryAddress());
             discoveryAddress = new InetSocketAddress(discoveryIp, rdmaConfig.getDiscoveryPort());
-            discoveryClient = new DiscoveryClient(discoveryAddress, rdmaConfig.getMaxWRs(), rdmaConfig.getCqSize(),
-                    rdmaConfig.getTimeout(), rdmaConfig.isPolling(), rdmaConfig.getMaxSge(),
+            discoveryClient = new DiscoveryClient(discoveryAddress, rdmaConfig.getTimeout(), rdmaConfig.getMaxWRs(),
+                    rdmaConfig.getCqSize(), rdmaConfig.getTimeout(), rdmaConfig.isPolling(), rdmaConfig.getMaxSge(),
                     rdmaConfig.getMaxBufferSize());
-            DiscoveryServiceProxy discoveryAPI = discoveryClient.generateDiscoveryServiceProxy();
+            discoveryAPI = discoveryClient.generateDiscoveryServiceProxy();
+            if(discoveryAPI == null){
+                logger.severe("Cannot send requests to discover service.");
+                return false;
+            }
             localServerIdentifier = new ServerIdentifier(localRdmaAddress,
                     localMember.getAddress().getInetSocketAddress());
             registeredServers = discoveryAPI.registerServer(localServerIdentifier);
+            // no need to keep the connection
+            discoveryClient.disconnect();
+            if(registeredServers == null){
+                logger.severe("Could not get registered servers from remote discovery service.");
+                return false;
+            }
             StringBuilder messageBuilder = new StringBuilder("Registered to discovery service. Registered servers : ");
             registeredServers.forEach((server)->{messageBuilder.append(server.toString() +" ");});
             logger.info(messageBuilder.toString());
@@ -175,15 +185,21 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
 
     @Override
     public void stopAndRemoveConnections(){
-        if((discoveryAPI != null) && (localServerIdentifier != null)){
-            discoveryAPI.unregisterServer(localServerIdentifier);
+        if((discoveryClient != null) && (localServerIdentifier != null)){
+            discoveryAPI = discoveryClient.generateDiscoveryServiceProxy();
+            try {
+                discoveryAPI.unregisterServer(localServerIdentifier);
+            } catch (RpcExecutionException e) {
+                logger.severe("Could not unregister server from discovery service.", e);
+            }
+            discoveryClient.disconnect();
         }
-        for(Map.Entry<InetSocketAddress, ActiveRdmaCommunicator> connection : inboundConnections.entrySet()){
+        for(Map.Entry<InetSocketAddress, RdmaServerConnection> connection : rdmaAddressConnectionMap.entrySet()){
             try{
-                connection.getValue().close();
+                connection.getValue().getRdmaEndpoint().close();
                 logger.info("Closed connection towards "+connection.getKey());
             } catch (InterruptedException | IOException e) {
-                logger.info("Cannot close connection towards "+connection.getKey(), e);
+                // ignore - the remote side might have already disconnected from this server
             }
         }
         // reset the connection data structures (clearing them might be slower
@@ -217,6 +233,39 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
             logger.severe("Cannot translate Address to InetSocketAddress.", e);
         }
         return false;
+    }
+
+    @Override
+    public void removeConnection(Address address, boolean isTcpAddress) {
+        InetSocketAddress socketAddress = null;
+        try {
+            socketAddress = address.getInetSocketAddress();
+        } catch (UnknownHostException e) {
+            return;
+        }
+        try {
+            RdmaServerConnection connectionToRemove = null;
+            if(isTcpAddress) {
+                connectionToRemove = tcpToRdmaMap.remove(socketAddress);
+                if (connectionToRemove == null) {
+                    return;
+                }
+                rdmaAddressConnectionMap.remove(connectionToRemove.getServerIdentifier().getRdmaAddress());
+            }else {
+                connectionToRemove = rdmaAddressConnectionMap.remove(socketAddress);
+                if (connectionToRemove == null) {
+                    return;
+                }
+                tcpToRdmaMap.remove(connectionToRemove.getServerIdentifier().getTcpAddress());
+            }
+            connectionToRemove.getRdmaEndpoint().close();
+            InetSocketAddress rdmaAddress = connectionToRemove.getServerIdentifier().getRdmaAddress();
+            inboundConnections.remove(rdmaAddress);
+            logger.info("Removed RDMA connection towards " + rdmaAddress);
+        } catch (IOException | InterruptedException e) {
+            //ignore - if the remote side has shut down correctly,
+            // they probably closed their endpoint connecting to us.
+        }
     }
 
     @Override

@@ -3,6 +3,7 @@ package discovery.service.api;
 import discovery.common.api.DiscoveryApi;
 import discovery.common.api.ServerIdentifier;
 import discovery.service.DiscoveryServiceStarter;
+import jarg.rdmarpc.rpc.exception.RpcExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,20 +19,21 @@ public class DiscoveryApiImpl implements DiscoveryApi {
     }
 
     @Override
-    public synchronized Set<ServerIdentifier> registerServer(ServerIdentifier identifier) {
+    public Set<ServerIdentifier> registerServer(ServerIdentifier identifier) throws RpcExecutionException{
         serverIdentifiers.add(identifier);
         logger.info("Registered server : " + identifier);
         return serverIdentifiers;
     }
 
     @Override
-    public synchronized boolean unregisterServer(ServerIdentifier identifier) {
+    public boolean unregisterServer(ServerIdentifier identifier) throws RpcExecutionException{
         logger.info("Unregistering server : " + identifier);
         return serverIdentifiers.remove(identifier);
     }
 
     @Override
-    public synchronized Set<ServerIdentifier> getRegisteredServers() {
+    public Set<ServerIdentifier> getRegisteredServers() throws RpcExecutionException{
+        logger.info("Getting registered servers. ");
         return serverIdentifiers;
     }
 }

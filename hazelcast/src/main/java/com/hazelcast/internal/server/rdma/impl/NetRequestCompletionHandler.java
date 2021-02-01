@@ -5,11 +5,13 @@ import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.nio.PacketIOHelper;
 import com.hazelcast.internal.server.rdma.RdmaServerConnection;
 import com.hazelcast.spi.impl.NodeEngine;
+import com.ibm.disni.RdmaActiveEndpoint;
 import com.ibm.disni.verbs.IbvWC;
 import discovery.common.api.ServerIdentifier;
 import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType;
 import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
 
 import java.io.IOException;
@@ -94,23 +96,32 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
 
     @Override
     public void handleCqEventError(IbvWC workCompletionEvent) {
-            // associate event with a Work Request
-            WorkRequestProxy receiveProxy = getProxyProvider().getWorkRequestProxyForWc(workCompletionEvent);
-            // Must free the request
-            receiveProxy.releaseWorkRequest();
-            // Status 5 can happen on remote side disconnect, since we have already posted
-            // RECV requests for that remote side. We can simply close the remote endpoint
-            // at this point.
-            if(workCompletionEvent.getStatus() == IbvWC.IbvWcStatus.IBV_WC_WR_FLUSH_ERR.ordinal()){
-                ActiveRdmaCommunicator communicator = (ActiveRdmaCommunicator) receiveProxy.getEndpoint();
-                try {
-                    communicator.close();
-                } catch (IOException | InterruptedException e) {
-                    logger.severe("Error in closing endpoint.", e);
-                }
-            }else{
-                logger.severe("Error in network request "+ workCompletionEvent.getWr_id()
-                        + " of status : " + workCompletionEvent.getStatus());
-            }
+        // associate event with a Work Request
+        WorkRequestProxy workRequestProxy = getProxyProvider().getWorkRequestProxyForWc(workCompletionEvent);
+        // Must free the request
+        workRequestProxy.releaseWorkRequest();
+        // prepare the message to sent
+        RdmaActiveEndpoint endpoint = (RdmaActiveEndpoint) workRequestProxy.getEndpoint();
+        InetSocketAddress endpointAddress = null;
+        try {
+            endpointAddress = (InetSocketAddress) endpoint.getDstAddr();
+        } catch (IOException e) {
+            //ignore
+        }
+        StringBuilder messageBuilder = new StringBuilder("Error : {");
+        messageBuilder.append("wr id : "+ workCompletionEvent.getWr_id()+", ");
+        messageBuilder.append("status : " + workCompletionEvent.getStatus() + ", ");
+        messageBuilder.append("type : " + workRequestProxy.getWorkRequestType().toString());
+        if(endpointAddress != null){
+            messageBuilder.append(", address : " + endpointAddress +"}");
+        }else{
+            messageBuilder.append("}");
+        }
+        // Status 5 can happen on remote side disconnect, since we have already posted
+        // RECV requests for that remote side.
+        if((workCompletionEvent.getStatus() != IbvWC.IbvWcStatus.IBV_WC_WR_FLUSH_ERR.ordinal()) ||
+                (workRequestProxy.getWorkRequestType().equals(WorkRequestType.TWO_SIDED_SEND_SIGNALED)) ){
+            logger.severe(messageBuilder.toString());
+        }
     }
 }

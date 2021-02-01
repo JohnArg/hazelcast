@@ -18,6 +18,10 @@ public class DiscoveryConfig {
      */
     private int discoveryPort;
     /**
+     * How long to wait for RPCs to complete.
+     */
+    private int rpcTimeout;
+    /**
      * Endpoint connection timeout (DiSNI property).
      */
     private int timeout;
@@ -45,16 +49,16 @@ public class DiscoveryConfig {
      * Endpoint max buffer size for storing messages.
      */
     private int maxBufferSize;
-    /**
-     * Number of worker threads that the service will use.
-     */
-    private int workerThreadsNum;
+
+
 
     public DiscoveryConfig(){};
 
-    public DiscoveryConfig(String discoveryAddress, int discoveryPort, int timeout, boolean polling, int maxWRs, int maxSge, int cqSize, int serverBacklog, int maxBufferSize, int workerThreadsNum) {
+    public DiscoveryConfig(String discoveryAddress, int discoveryPort, int rpcTimeout, int timeout, boolean polling,
+                           int maxWRs, int maxSge, int cqSize, int serverBacklog, int maxBufferSize) {
         this.discoveryAddress = discoveryAddress;
         this.discoveryPort = discoveryPort;
+        this.rpcTimeout = rpcTimeout;
         this.timeout = timeout;
         this.polling = polling;
         this.maxWRs = maxWRs;
@@ -62,7 +66,6 @@ public class DiscoveryConfig {
         this.cqSize = cqSize;
         this.serverBacklog = serverBacklog;
         this.maxBufferSize = maxBufferSize;
-        this.workerThreadsNum = workerThreadsNum;
     }
 
     /**
@@ -77,7 +80,7 @@ public class DiscoveryConfig {
 
         discoveryAddress = properties.getProperty("discovery.address");
         discoveryPort = Integer.parseInt(properties.getProperty("discovery.port"));
-        workerThreadsNum = Integer.parseInt(properties.getProperty("discovery.workerThreadsNum"));
+        rpcTimeout = Integer.parseInt(properties.getProperty("discovery.rpcTimeout"));
         timeout = Integer.parseInt(properties.getProperty("rdma.timeout"));
         polling = Boolean.parseBoolean(properties.getProperty("rdma.polling"));
         maxWRs = Integer.parseInt(properties.getProperty("rdma.maxWRs"));
@@ -123,7 +126,7 @@ public class DiscoveryConfig {
         return maxBufferSize;
     }
 
-    public int getWorkerThreadsNum() {
-        return workerThreadsNum;
+    public int getRpcTimeout() {
+        return rpcTimeout;
     }
 }

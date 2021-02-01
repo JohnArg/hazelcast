@@ -6,13 +6,16 @@ import discovery.common.api.ServerIdentifier;
 import discovery.common.serializers.ServerIdentifierSetSerializer;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
 import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
+import jarg.rdmarpc.rpc.exception.RpcExecutionException;
 import jarg.rdmarpc.rpc.invocation.RpcOperationInvocator;
 import jarg.rdmarpc.rpc.packets.AbstractRpcPacket;
+import jarg.rdmarpc.rpc.packets.RpcMessageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 
 public class RegisterServerResponseInvocator implements RpcOperationInvocator {
@@ -31,6 +34,16 @@ public class RegisterServerResponseInvocator implements RpcOperationInvocator {
         DiscoveryPacket rpcPacket = (DiscoveryPacket) packet;
         long operationId = rpcPacket.getOperationId();
         WorkRequestProxy workRequestProxy = rpcPacket.getWorkRequestProxy();
+
+        // check if this is an error response
+        if(rpcPacket.getMessageType() == RpcMessageType.ERROR){
+            workRequestProxy.releaseWorkRequest();
+            // complete future that was waiting for this response
+            CompletableFuture<Set<ServerIdentifier>> responseFuture =
+                    responseManager.getRegisteredServersPendingResponses().remove(operationId);
+            responseFuture.completeExceptionally(
+                    new ExecutionException(new RpcExecutionException("Got an ERROR response from the service.")));
+        }
 
         try {
             // deserialize response

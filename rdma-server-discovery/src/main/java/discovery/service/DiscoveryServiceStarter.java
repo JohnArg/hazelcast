@@ -34,7 +34,7 @@ public class DiscoveryServiceStarter {
         }
         DiscoveryService service = new DiscoveryService(listeningAddress, config.getServerBacklog(),
                 config.getMaxWRs(), config.getCqSize(), config.getTimeout(), config.isPolling(),
-                config.getMaxSge(), config.getMaxBufferSize(), config.getWorkerThreadsNum());
+                config.getMaxSge(), config.getMaxBufferSize());
         service.start();
     }
 }

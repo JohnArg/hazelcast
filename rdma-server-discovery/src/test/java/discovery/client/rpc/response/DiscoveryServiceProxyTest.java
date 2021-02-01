@@ -7,6 +7,7 @@ import discovery.common.MockPacketFactory;
 import discovery.common.api.ServerIdentifier;
 import discovery.service.api.DiscoveryApiImpl;
 import jarg.rdmarpc.networking.communicators.RdmaCommunicator;
+import jarg.rdmarpc.rpc.exception.RpcExecutionException;
 import org.junit.jupiter.api.*;
 
 import java.net.InetSocketAddress;
@@ -18,6 +19,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
 public class DiscoveryServiceProxyTest {
@@ -30,6 +32,7 @@ public class DiscoveryServiceProxyTest {
     private DiscoveryServiceProxy discoveryServiceProxy;
     private CompletableFuture<ByteBuffer> netRequestPostedFuture;
     private static Set<ServerIdentifier> identifiersToTest;
+    private static final int timeout = 3000;
 
     @BeforeAll
     public static void beforeAll(){
@@ -106,7 +109,7 @@ public class DiscoveryServiceProxyTest {
             mockPacket = mockPacketFactory.get(netRequestPostedFuture);
             mockCommunicator = mockPacket.getWorkRequestProxy().getEndpoint();
             discoveryServiceProxy = new DiscoveryServiceProxy(mockCommunicator,
-                    pendingResponseManager, new DiscoveryRequestIdGenerator(0));
+                    pendingResponseManager, new DiscoveryRequestIdGenerator(0), timeout);
             // define how to handle responses
             ResponseThread responseThread = new ResponseThread(netRequestPostedFuture, identifier) {
                 @Override
@@ -120,13 +123,24 @@ public class DiscoveryServiceProxyTest {
                     CompletableFuture<Set<ServerIdentifier>> identifiers =
                             pendingResponseManager.registerServerPendingResponses().remove(0L);
                     // "send" a response
-                    identifiers.complete(discoveryApi.registerServer(identifier));
+                    try {
+                        identifiers.complete(discoveryApi.registerServer(identifier));
+                    } catch (RpcExecutionException e) {
+                        e.printStackTrace();
+                        fail();
+                    }
                 }
             };
             // start the response thread before invoking the API
             responseThread.start();
             // invoke the proxy API
-            Set<ServerIdentifier> members = discoveryServiceProxy.registerServer(identifier);
+            Set<ServerIdentifier> members = null;
+            try {
+                members = discoveryServiceProxy.registerServer(identifier);
+            } catch (RpcExecutionException e) {
+                e.printStackTrace();
+                fail();
+            }
             // test results of proxy API invocation
             expectedMembers.add(identifier);
             assertEquals(expectedMembers, members);
@@ -143,7 +157,12 @@ public class DiscoveryServiceProxyTest {
             // the second time, fill the set
             if(i == 1){
                 for(ServerIdentifier identifier : identifiersToTest) {
-                    discoveryApi.registerServer(identifier);
+                    try {
+                        discoveryApi.registerServer(identifier);
+                    } catch (RpcExecutionException e) {
+                        e.printStackTrace();
+                        fail();
+                    }
                 }
             }
             // run the tests
@@ -153,7 +172,7 @@ public class DiscoveryServiceProxyTest {
                 mockPacket = mockPacketFactory.get(netRequestPostedFuture);
                 mockCommunicator = mockPacket.getWorkRequestProxy().getEndpoint();
                 discoveryServiceProxy = new DiscoveryServiceProxy(mockCommunicator,
-                        pendingResponseManager, new DiscoveryRequestIdGenerator(0));
+                        pendingResponseManager, new DiscoveryRequestIdGenerator(0), timeout);
                 // define how to handle responses
                 ResponseThread responseThread = new ResponseThread(netRequestPostedFuture, identifier) {
                     @Override
@@ -167,13 +186,24 @@ public class DiscoveryServiceProxyTest {
                         CompletableFuture<Boolean> flags =
                                 pendingResponseManager.unregisterServerPendingResponses().remove(0L);
                         // "send" a response
-                        flags.complete(discoveryApi.unregisterServer(identifier));
+                        try {
+                            flags.complete(discoveryApi.unregisterServer(identifier));
+                        } catch (RpcExecutionException e) {
+                            e.printStackTrace();
+                            fail();
+                        }
                     }
                 };
                 // start the response thread before invoking the API
                 responseThread.start();
                 // invoke the proxy API
-                boolean success = discoveryServiceProxy.unregisterServer(identifier);
+                boolean success = false;
+                try {
+                    success = discoveryServiceProxy.unregisterServer(identifier);
+                } catch (RpcExecutionException e) {
+                    e.printStackTrace();
+                    fail();
+                }
                 // test results of proxy API invocation
                 boolean expectedSuccess = (i == 1);
                 assertEquals(expectedSuccess, success);
@@ -193,7 +223,12 @@ public class DiscoveryServiceProxyTest {
             // the second time, fill the set
             if(i == 1){
                 for(ServerIdentifier identifier : identifiersToTest) {
-                    discoveryApi.registerServer(identifier);
+                    try {
+                        discoveryApi.registerServer(identifier);
+                    } catch (RpcExecutionException e) {
+                        e.printStackTrace();
+                        fail();
+                    }
                 }
             }
             // generate dependencies for the discovery proxy
@@ -201,7 +236,7 @@ public class DiscoveryServiceProxyTest {
             mockPacket = mockPacketFactory.get(netRequestPostedFuture);
             mockCommunicator = mockPacket.getWorkRequestProxy().getEndpoint();
             discoveryServiceProxy = new DiscoveryServiceProxy(mockCommunicator,
-                    pendingResponseManager, new DiscoveryRequestIdGenerator(0));
+                    pendingResponseManager, new DiscoveryRequestIdGenerator(0), timeout);
             // define how to handle responses
             ResponseThread responseThread = new ResponseThread(netRequestPostedFuture, null) {
                 @Override
@@ -215,14 +250,30 @@ public class DiscoveryServiceProxyTest {
                     CompletableFuture<Set<ServerIdentifier>> identifiers =
                             pendingResponseManager.getRegisteredServersPendingResponses().remove(0L);
                     // "send" a response
-                    identifiers.complete(discoveryApi.getRegisteredServers());
+                    try {
+                        identifiers.complete(discoveryApi.getRegisteredServers());
+                    } catch (RpcExecutionException e) {
+                        e.printStackTrace();
+                        fail();
+                    }
                 }
             };
             // start the response thread before invoking the API
             responseThread.start();
             // invoke the proxy API
-            Set<ServerIdentifier> members = discoveryServiceProxy.getRegisteredServers();
-            expectedMembers = discoveryApi.getRegisteredServers();
+            Set<ServerIdentifier> members = null;
+            try {
+                members = discoveryServiceProxy.getRegisteredServers();
+            } catch (RpcExecutionException e) {
+                e.printStackTrace();
+                fail();
+            }
+            try {
+                expectedMembers = discoveryApi.getRegisteredServers();
+            } catch (RpcExecutionException e) {
+                e.printStackTrace();
+                fail();
+            }
             // test results of proxy API invocation
             assertEquals(expectedMembers, members);
         }

@@ -6,6 +6,7 @@ import discovery.common.MockPacketFactory;
 import discovery.common.api.ServerIdentifier;
 import discovery.common.serializers.ServerIdentifierSetSerializer;
 import discovery.service.api.DiscoveryApiImpl;
+import jarg.rdmarpc.rpc.exception.RpcExecutionException;
 import jarg.rdmarpc.rpc.packets.RpcMessageType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -27,9 +28,8 @@ public class RegisterServerApiInvocatorTest {
     @DisplayName("Invoking registerServer API Test")
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
     public void testApiCall(){
-        ExecutorService workers = Executors.newFixedThreadPool(2);
         DiscoveryApiImpl api = new DiscoveryApiImpl();
-        RegisterServerApiInvocator  apiInvocator = new RegisterServerApiInvocator(workers, api);
+        RegisterServerApiInvocator  apiInvocator = new RegisterServerApiInvocator(api);
         MockPacketFactory packetFactory = new MockPacketFactory(200);
 
         // try with no registered servers --------------
@@ -80,6 +80,13 @@ public class RegisterServerApiInvocatorTest {
                 .getWorkRequestProxy());
         assertDoesNotThrow(()->{setSerializer.readFromWorkRequestBuffer();});
         Set<ServerIdentifier> identifiers = setSerializer.getIdentifiers();
-        assertEquals(api.getRegisteredServers(), identifiers);
+        Set<ServerIdentifier> expectedServers = null;
+        try {
+            expectedServers = api.getRegisteredServers();
+        } catch (RpcExecutionException e) {
+            e.printStackTrace();
+            fail();
+        }
+        assertEquals(expectedServers, identifiers);
     }
 }

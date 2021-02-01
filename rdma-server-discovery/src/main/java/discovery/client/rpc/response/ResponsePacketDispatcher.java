@@ -7,6 +7,7 @@ import discovery.common.DiscoveryOperationType;
 import discovery.common.DiscoveryPacket;
 import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
 import jarg.rdmarpc.rpc.packets.PacketDispatcher;
+import jarg.rdmarpc.rpc.packets.RpcMessageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
