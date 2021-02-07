@@ -24,7 +24,7 @@ public abstract class AbstractDiscoveryInvocator implements RpcOperationInvocato
     protected void sendResponse(DiscoveryPacket requestPacket, AbstractDataSerializer responseSerializer,
                                 Boolean isErrorResponse) {
         // get information from the request packet
-        RdmaCommunicator endpoint = requestPacket.getWorkRequestProxy().getEndpoint();
+        RdmaCommunicator endpoint = requestPacket.getWorkRequestProxy().getRdmaCommunicator();
         int invokedOperationType = requestPacket.getOperationType();
         long invokedOperationId = requestPacket.getOperationId();
         WorkRequestProxy workRequestProxy = endpoint.getWorkRequestProxyProvider()

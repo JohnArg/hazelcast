@@ -107,7 +107,7 @@ public class DiscoveryServiceProxyTest {
             // generate dependencies for the discovery proxy
             netRequestPostedFuture = new CompletableFuture<>();
             mockPacket = mockPacketFactory.get(netRequestPostedFuture);
-            mockCommunicator = mockPacket.getWorkRequestProxy().getEndpoint();
+            mockCommunicator = mockPacket.getWorkRequestProxy().getRdmaCommunicator();
             discoveryServiceProxy = new DiscoveryServiceProxy(mockCommunicator,
                     pendingResponseManager, new DiscoveryRequestIdGenerator(0), timeout);
             // define how to handle responses
@@ -170,7 +170,7 @@ public class DiscoveryServiceProxyTest {
                 // generate dependencies for the discovery proxy
                 netRequestPostedFuture = new CompletableFuture<>();
                 mockPacket = mockPacketFactory.get(netRequestPostedFuture);
-                mockCommunicator = mockPacket.getWorkRequestProxy().getEndpoint();
+                mockCommunicator = mockPacket.getWorkRequestProxy().getRdmaCommunicator();
                 discoveryServiceProxy = new DiscoveryServiceProxy(mockCommunicator,
                         pendingResponseManager, new DiscoveryRequestIdGenerator(0), timeout);
                 // define how to handle responses
@@ -234,7 +234,7 @@ public class DiscoveryServiceProxyTest {
             // generate dependencies for the discovery proxy
             netRequestPostedFuture = new CompletableFuture<>();
             mockPacket = mockPacketFactory.get(netRequestPostedFuture);
-            mockCommunicator = mockPacket.getWorkRequestProxy().getEndpoint();
+            mockCommunicator = mockPacket.getWorkRequestProxy().getRdmaCommunicator();
             discoveryServiceProxy = new DiscoveryServiceProxy(mockCommunicator,
                     pendingResponseManager, new DiscoveryRequestIdGenerator(0), timeout);
             // define how to handle responses

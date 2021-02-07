@@ -43,8 +43,7 @@ public class ServiceCommunicatorFactory implements RdmaEndpointFactory<ActiveRdm
                 .setProxyProvider(new QueuedProxyProvider(maxWorkRequests))
                 .setBufferManager(new TwoSidedBufferManager(maxBufferSize, maxWorkRequests))
                 .setSvcManager(new TwoSidedSVCManager(maxBufferSize, maxWorkRequests))
-                .setWorkCompletionHandler(new NetworkCompletionEventHandler(dependencies.getProxyProvider(),
-                        packetDispatcher));
+                .setWorkCompletionHandler(new NetworkCompletionEventHandler(packetDispatcher));
         // create endpoint
         return new ActiveRdmaCommunicator(endpointGroup, id, serverSide, dependencies);
     }

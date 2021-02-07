@@ -11,6 +11,7 @@ import discovery.common.api.ServerIdentifier;
 import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxyProvider;
 import jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType;
 import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
 
@@ -37,7 +38,7 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
     @Override
     public void handleCqEvent(IbvWC workCompletionEvent) {
         // associate event with a Work Request
-        WorkRequestProxy receiveProxy = getProxyProvider().getWorkRequestProxyForWc(workCompletionEvent);
+        WorkRequestProxy receiveProxy = proxyProvider.getWorkRequestProxyForWc(workCompletionEvent);
         // if this is a completion for a SEND ================================================
         if(receiveProxy.getWorkRequestType().equals(TWO_SIDED_SEND_SIGNALED)){
             receiveProxy.releaseWorkRequest();
@@ -46,10 +47,9 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
             // get details from packet/connection
             PacketIOHelper packetIOHelper = new PacketIOHelper();
             Packet receivedPacket;
-            ActiveRdmaCommunicator communicator = (ActiveRdmaCommunicator) receiveProxy.getEndpoint();
+            ActiveRdmaCommunicator communicator = (ActiveRdmaCommunicator) receiveProxy.getRdmaCommunicator();
             InetSocketAddress senderAddress = null;
             try {
-                // we don't know if the message came from an outbound or inbound connection
                 senderAddress = (InetSocketAddress) communicator.getDstAddr();
             }catch (IOException e){
                 receiveProxy.releaseWorkRequest();
@@ -97,30 +97,37 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
     @Override
     public void handleCqEventError(IbvWC workCompletionEvent) {
         // associate event with a Work Request
-        WorkRequestProxy workRequestProxy = getProxyProvider().getWorkRequestProxyForWc(workCompletionEvent);
-        // Must free the request
+        WorkRequestProxy workRequestProxy = proxyProvider.getWorkRequestProxyForWc(workCompletionEvent);
+        ActiveRdmaCommunicator rdmaCommunicator = (ActiveRdmaCommunicator) workRequestProxy.getRdmaCommunicator();
+        // must free the request
         workRequestProxy.releaseWorkRequest();
-        // prepare the message to sent
-        RdmaActiveEndpoint endpoint = (RdmaActiveEndpoint) workRequestProxy.getEndpoint();
-        InetSocketAddress endpointAddress = null;
-        try {
-            endpointAddress = (InetSocketAddress) endpoint.getDstAddr();
-        } catch (IOException e) {
-            //ignore
-        }
-        StringBuilder messageBuilder = new StringBuilder("Error : {");
-        messageBuilder.append("wr id : "+ workCompletionEvent.getWr_id()+", ");
-        messageBuilder.append("status : " + workCompletionEvent.getStatus() + ", ");
-        messageBuilder.append("type : " + workRequestProxy.getWorkRequestType().toString());
-        if(endpointAddress != null){
-            messageBuilder.append(", address : " + endpointAddress +"}");
-        }else{
-            messageBuilder.append("}");
-        }
-        // Status 5 can happen on remote side disconnect, since we have already posted
-        // RECV requests for that remote side.
-        if((workCompletionEvent.getStatus() != IbvWC.IbvWcStatus.IBV_WC_WR_FLUSH_ERR.ordinal()) ||
-                (workRequestProxy.getWorkRequestType().equals(WorkRequestType.TWO_SIDED_SEND_SIGNALED)) ){
+        /*
+         *   Print errors when the communications are ongoing. When they are shut down, we expect
+         *   IBV_WC_WR_FLUSH_ERR errors to occur, since we have pre-posted RECVs to the NIC that will be
+         *   flushed, which is OK. Any other errors events occurring after shutting down the communications
+         *   will also be ignored.
+         */
+        if(((rdmaCommunicator.getQp().isOpen()) && (!rdmaCommunicator.isClosed())) && (
+                (workCompletionEvent.getStatus() != IbvWC.IbvWcStatus.IBV_WC_WR_FLUSH_ERR.ordinal()) ||
+                        (workRequestProxy.getWorkRequestType().equals(WorkRequestType.TWO_SIDED_SEND_SIGNALED))
+        )){
+            // prepare the message to sent
+            InetSocketAddress endpointAddress = null;
+            try {
+                endpointAddress = (InetSocketAddress) rdmaCommunicator.getDstAddr();
+            } catch (IOException e) {
+                //ignore
+            }
+            StringBuilder messageBuilder = new StringBuilder("Error : {");
+            messageBuilder.append("WR id : "+ workCompletionEvent.getWr_id()+", ");
+            messageBuilder.append("WC status : " + workCompletionEvent.getStatus() + ", ");
+            messageBuilder.append("WC opcode : " + workCompletionEvent.getOpcode() + ", ");
+            messageBuilder.append("WR type : " + workRequestProxy.getWorkRequestType().toString());
+            if(endpointAddress != null){
+                messageBuilder.append(", address : " + endpointAddress +"}");
+            }else{
+                messageBuilder.append("}");
+            }
             logger.severe(messageBuilder.toString());
         }
     }

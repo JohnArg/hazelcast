@@ -8,6 +8,7 @@ import com.ibm.disni.verbs.RdmaCmId;
 import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.RdmaCommunicatorDependencies;
 import jarg.rdmarpc.networking.dependencies.netbuffers.impl.TwoSidedBufferManager;
+import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxyProvider;
 import jarg.rdmarpc.networking.dependencies.netrequests.impl.QueuedProxyProvider;
 import jarg.rdmarpc.networking.dependencies.svc.impl.TwoSidedSVCManager;
 

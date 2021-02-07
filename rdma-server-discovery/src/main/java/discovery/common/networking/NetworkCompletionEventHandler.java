@@ -1,12 +1,13 @@
 package discovery.common.networking;
 
 import com.ibm.disni.RdmaActiveEndpoint;
-import com.ibm.disni.verbs.IbvSendWR;
 import com.ibm.disni.verbs.IbvWC;
 import discovery.common.DiscoveryPacket;
+import jarg.rdmarpc.networking.communicators.RdmaCommunicator;
+import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
-import jarg.rdmarpc.networking.dependencies.netrequests.AbstractWorkRequestProxyProvider;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxyProvider;
 import jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType;
 import jarg.rdmarpc.rpc.packets.PacketDispatcher;
 import org.slf4j.Logger;
@@ -25,16 +26,14 @@ public class NetworkCompletionEventHandler extends AbstractWorkCompletionHandler
 
     private PacketDispatcher<DiscoveryPacket> packetPacketDispatcher;
 
-    public NetworkCompletionEventHandler(AbstractWorkRequestProxyProvider proxyProvider,
-                                         PacketDispatcher<DiscoveryPacket> packetPacketDispatcher) {
-        super(proxyProvider);
+    public NetworkCompletionEventHandler(PacketDispatcher<DiscoveryPacket> packetPacketDispatcher) {
         this.packetPacketDispatcher = packetPacketDispatcher;
     }
 
     @Override
     public void handleCqEvent(IbvWC workCompletionEvent) {
         // associate event with a Work Request
-        WorkRequestProxy workRequestProxy = getProxyProvider().getWorkRequestProxyForWc(workCompletionEvent);
+        WorkRequestProxy workRequestProxy = proxyProvider.getWorkRequestProxyForWc(workCompletionEvent);
         // if this is a completion for an event other than a RECEIVE, free the request
         if(!workRequestProxy.getWorkRequestType().equals(WorkRequestType.TWO_SIDED_RECV)){
             workRequestProxy.releaseWorkRequest();
@@ -49,30 +48,37 @@ public class NetworkCompletionEventHandler extends AbstractWorkCompletionHandler
     @Override
     public void handleCqEventError(IbvWC workCompletionEvent) {
         // associate event with a Work Request
-        WorkRequestProxy workRequestProxy = getProxyProvider().getWorkRequestProxyForWc(workCompletionEvent);
+        WorkRequestProxy workRequestProxy = proxyProvider.getWorkRequestProxyForWc(workCompletionEvent);
+        ActiveRdmaCommunicator rdmaCommunicator = (ActiveRdmaCommunicator) workRequestProxy.getRdmaCommunicator();
         // must free the request
         workRequestProxy.releaseWorkRequest();
-        // prepare the message to sent
-        RdmaActiveEndpoint endpoint = (RdmaActiveEndpoint) workRequestProxy.getEndpoint();
-        InetSocketAddress endpointAddress = null;
-        try {
-            endpointAddress = (InetSocketAddress) endpoint.getDstAddr();
-        } catch (IOException e) {
-            //ignore
-        }
-        StringBuilder messageBuilder = new StringBuilder("Error : {");
-        messageBuilder.append("wr id : "+ workCompletionEvent.getWr_id()+", ");
-        messageBuilder.append("status : " + workCompletionEvent.getStatus() + ", ");
-        messageBuilder.append("type : " + workRequestProxy.getWorkRequestType().toString());
-        if(endpointAddress != null){
-            messageBuilder.append(", address : " + endpointAddress +"}");
-        }else{
-            messageBuilder.append("}");
-        }
-        // Status 5 can happen on remote side disconnect, since we have already posted
-        // RECV requests for that remote side.
-        if((workCompletionEvent.getStatus() != IbvWC.IbvWcStatus.IBV_WC_WR_FLUSH_ERR.ordinal()) ||
-                (workRequestProxy.getWorkRequestType().equals(WorkRequestType.TWO_SIDED_SEND_SIGNALED)) ){
+        /*
+        *   Print errors when the communications are ongoing. When they are shut down, we expect
+        *   IBV_WC_WR_FLUSH_ERR errors to occur, since we have pre-posted RECVs to the NIC that will be
+        *   flushed, which is OK. Any other errors events occurring after shutting down the communications
+        *   will also be ignored.
+         */
+        if(((rdmaCommunicator.getQp().isOpen()) && (!rdmaCommunicator.isClosed())) && (
+                (workCompletionEvent.getStatus() != IbvWC.IbvWcStatus.IBV_WC_WR_FLUSH_ERR.ordinal()) ||
+                (workRequestProxy.getWorkRequestType().equals(WorkRequestType.TWO_SIDED_SEND_SIGNALED))
+        )){
+            // prepare the message to sent
+            InetSocketAddress endpointAddress = null;
+            try {
+                endpointAddress = (InetSocketAddress) rdmaCommunicator.getDstAddr();
+            } catch (IOException e) {
+                //ignore
+            }
+            StringBuilder messageBuilder = new StringBuilder("Error : {");
+            messageBuilder.append("WR id : "+ workCompletionEvent.getWr_id()+", ");
+            messageBuilder.append("WC status : " + workCompletionEvent.getStatus() + ", ");
+            messageBuilder.append("WC opcode : " + workCompletionEvent.getOpcode() + ", ");
+            messageBuilder.append("WR type : " + workRequestProxy.getWorkRequestType().toString());
+            if(endpointAddress != null){
+                messageBuilder.append(", address : " + endpointAddress +"}");
+            }else{
+                messageBuilder.append("}");
+            }
             logger.error(messageBuilder.toString());
         }
     }
