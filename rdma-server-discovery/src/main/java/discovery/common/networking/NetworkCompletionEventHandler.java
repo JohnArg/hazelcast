@@ -8,6 +8,7 @@ import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxyProvider;
+import jarg.rdmarpc.networking.dependencies.netrequests.types.PostedRequestType;
 import jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType;
 import jarg.rdmarpc.rpc.packets.PacketDispatcher;
 import org.slf4j.Logger;
@@ -50,18 +51,18 @@ public class NetworkCompletionEventHandler extends AbstractWorkCompletionHandler
         // associate event with a Work Request
         WorkRequestProxy workRequestProxy = proxyProvider.getWorkRequestProxyForWc(workCompletionEvent);
         ActiveRdmaCommunicator rdmaCommunicator = (ActiveRdmaCommunicator) workRequestProxy.getRdmaCommunicator();
-        // must free the request
-        workRequestProxy.releaseWorkRequest();
         /*
-        *   Print errors when the communications are ongoing. When they are shut down, we expect
-        *   IBV_WC_WR_FLUSH_ERR errors to occur, since we have pre-posted RECVs to the NIC that will be
-        *   flushed, which is OK. Any other errors events occurring after shutting down the communications
-        *   will also be ignored.
+         *   Print errors when the communications are ongoing. When they are shut down, we expect
+         *   IBV_WC_WR_FLUSH_ERR errors to occur, since we have pre-posted RECVs to the NIC that will be
+         *   flushed, which is OK. Any other errors events occurring after shutting down the communications
+         *   will also be ignored.
          */
-        if(((rdmaCommunicator.getQp().isOpen()) && (!rdmaCommunicator.isClosed())) && (
-                (workCompletionEvent.getStatus() != IbvWC.IbvWcStatus.IBV_WC_WR_FLUSH_ERR.ordinal()) ||
-                (workRequestProxy.getWorkRequestType().equals(WorkRequestType.TWO_SIDED_SEND_SIGNALED))
-        )){
+        if(rdmaCommunicator.isShutDown()){
+            return;
+        }
+
+        if((workCompletionEvent.getStatus() != IbvWC.IbvWcStatus.IBV_WC_WR_FLUSH_ERR.ordinal()) ||
+                !(workRequestProxy.getPostType().equals(PostedRequestType.RECEIVE))){
             // prepare the message to sent
             InetSocketAddress endpointAddress = null;
             try {
@@ -73,7 +74,9 @@ public class NetworkCompletionEventHandler extends AbstractWorkCompletionHandler
             messageBuilder.append("WR id : "+ workCompletionEvent.getWr_id()+", ");
             messageBuilder.append("WC status : " + workCompletionEvent.getStatus() + ", ");
             messageBuilder.append("WC opcode : " + workCompletionEvent.getOpcode() + ", ");
-            messageBuilder.append("WR type : " + workRequestProxy.getWorkRequestType().toString());
+            messageBuilder.append("WR type : ");
+            // following might be null
+            messageBuilder.append(workRequestProxy.getWorkRequestType());
             if(endpointAddress != null){
                 messageBuilder.append(", address : " + endpointAddress +"}");
             }else{
@@ -81,6 +84,8 @@ public class NetworkCompletionEventHandler extends AbstractWorkCompletionHandler
             }
             logger.error(messageBuilder.toString());
         }
+        // must free the request if the communicator is not shut down
+        workRequestProxy.releaseWorkRequest();
     }
 
     public PacketDispatcher<DiscoveryPacket> getPacketPacketDispatcher() {
