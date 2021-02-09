@@ -61,14 +61,19 @@ public class RdmaServiceImpl implements RdmaService, RaftManagedService, Members
     @Override
     public void init(NodeEngine nodeEngine, Properties properties) {
         logger = new RdmaLogger(engine.getLogger(RdmaServiceImpl.class.getSimpleName()));
-        rdmaConfig = new RdmaConfig();
+        rdmaConfig = engine.getHazelcastInstance().getRdmaConfig();
         // Check if system can use RDMA. If not, stop here.
-        try{
-            rdmaConfig.loadFromProperties(RDMA_PROPERTIES_FILE);
-        } catch (Exception e) {
-            logger.info("Cannot read RDMA properties from configuration file. RDMA will be " +
-                    "disabled.", e);
-            rdmaConfig.setRdmaEnable(false);
+        if(rdmaConfig == null){
+            logger.info("No external RDMA configuration detected. Will try to read from classpath.");
+            try{
+                rdmaConfig = new RdmaConfig();
+                rdmaConfig.loadFromProperties(RDMA_PROPERTIES_FILE);
+                engine.getHazelcastInstance().setRdmaConfig(rdmaConfig);
+            } catch (Exception e) {
+                logger.info("Cannot read RDMA properties from configuration file. RDMA will be " +
+                        "disabled.", e);
+                rdmaConfig.setRdmaEnable(false);
+            }
         }
         // RDMA can also be disabled by setting a property in the configuration file
         if(!rdmaConfig.isRdmaEnabled()){

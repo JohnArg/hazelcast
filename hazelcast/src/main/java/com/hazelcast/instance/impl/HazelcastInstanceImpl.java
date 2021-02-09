@@ -52,6 +52,7 @@ import com.hazelcast.internal.cluster.Versions;
 import com.hazelcast.internal.crdt.pncounter.PNCounterService;
 import com.hazelcast.internal.jmx.ManagementService;
 import com.hazelcast.internal.memory.MemoryStats;
+import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.serialization.InternalSerializationService;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.LoggingService;
@@ -101,9 +102,15 @@ public class HazelcastInstanceImpl implements HazelcastInstance, SerializationSe
     final CPSubsystemImpl cpSubsystem;
     final ManagedContext managedContext;
     final HazelcastInstanceCacheManager hazelcastCacheManager;
+    private RdmaConfig rdmaConfig;
+
+    protected HazelcastInstanceImpl(String name, Config config, NodeContext nodeContext){
+        this(name, config, nodeContext, null);
+    }
 
     @SuppressWarnings("checkstyle:executablestatementcount")
-    protected HazelcastInstanceImpl(String name, Config config, NodeContext nodeContext) {
+    protected HazelcastInstanceImpl(String name, Config config, NodeContext nodeContext, RdmaConfig rdmaConfig) {
+        this.rdmaConfig = rdmaConfig;
         this.name = name;
         this.lifecycleService = new LifecycleServiceImpl(this);
 
@@ -142,6 +149,10 @@ public class HazelcastInstanceImpl implements HazelcastInstance, SerializationSe
             }
             throw rethrow(e);
         }
+    }
+
+    private void init(){
+
     }
 
     private Node createNode(Config config, NodeContext nodeContext) {
@@ -441,5 +452,15 @@ public class HazelcastInstanceImpl implements HazelcastInstance, SerializationSe
     @Override
     public String toString() {
         return "HazelcastInstance{name='" + name + "', node=" + node.getThisAddress() + '}';
+    }
+
+    @Override
+    public RdmaConfig getRdmaConfig(){
+        return this.rdmaConfig;
+    }
+
+    @Override
+    public void setRdmaConfig(RdmaConfig rdmaConfig) {
+        this.rdmaConfig = rdmaConfig;
     }
 }

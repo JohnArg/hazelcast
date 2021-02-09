@@ -202,6 +202,62 @@ public class RdmaConfig {
         this.rdmaEnable = rdmaEnable;
     }
 
+    public void setRdmaAddress(String rdmaAddress) {
+        this.rdmaAddress = rdmaAddress;
+    }
+
+    public void setRdmaListeningPortMin(int rdmaListeningPortMin) {
+        this.rdmaListeningPortMin = rdmaListeningPortMin;
+    }
+
+    public void setRdmaListeningPortMax(int rdmaListeningPortMax) {
+        this.rdmaListeningPortMax = rdmaListeningPortMax;
+    }
+
+    public void setConnectionRetries(int connectionRetries) {
+        this.connectionRetries = connectionRetries;
+    }
+
+    public void setConnectionRetryDelay(int connectionRetryDelay) {
+        this.connectionRetryDelay = connectionRetryDelay;
+    }
+
+    public void setDiscoveryAddress(String discoveryAddress) {
+        this.discoveryAddress = discoveryAddress;
+    }
+
+    public void setDiscoveryPort(int discoveryPort) {
+        this.discoveryPort = discoveryPort;
+    }
+
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
+    }
+
+    public void setPolling(boolean polling) {
+        this.polling = polling;
+    }
+
+    public void setMaxWRs(int maxWRs) {
+        this.maxWRs = maxWRs;
+    }
+
+    public void setMaxSge(int maxSge) {
+        this.maxSge = maxSge;
+    }
+
+    public void setCqSize(int cqSize) {
+        this.cqSize = cqSize;
+    }
+
+    public void setServerBacklog(int serverBacklog) {
+        this.serverBacklog = serverBacklog;
+    }
+
+    public void setMaxBufferSize(int maxBufferSize) {
+        this.maxBufferSize = maxBufferSize;
+    }
+
     @Override
     public String toString() {
         return "RdmaConfig{" +

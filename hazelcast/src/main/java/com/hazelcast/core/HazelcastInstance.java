@@ -30,6 +30,7 @@ import com.hazelcast.cp.CPSubsystem;
 import com.hazelcast.crdt.pncounter.PNCounter;
 import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.hazelcast.flakeidgen.FlakeIdGenerator;
+import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.logging.LoggingService;
 import com.hazelcast.map.IMap;
 import com.hazelcast.multimap.MultiMap;
@@ -471,4 +472,22 @@ public interface HazelcastInstance {
      * Shuts down this HazelcastInstance. For more information see {@link com.hazelcast.core.LifecycleService#shutdown()}.
      */
     void shutdown();
+
+    /**
+     * Gets the RDMA config that the instance is using (if any).
+     * @return the RDMA config.
+     */
+    default RdmaConfig getRdmaConfig(){
+        // Override to change only where necessary (e.g. HazelcastInstanceImpl)
+        return null;
+    }
+
+    /**
+     * Sets the RDMA configuration to use.
+     * @param rdmaConfig the RDMA configuration to use.
+     */
+    default void setRdmaConfig(RdmaConfig rdmaConfig){
+        // Override to change only where necessary (e.g. HazelcastInstanceImpl)
+       return;
+    }
 }

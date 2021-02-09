@@ -19,6 +19,7 @@ package com.hazelcast.core;
 import com.hazelcast.config.Config;
 import com.hazelcast.instance.impl.HazelcastInstanceFactory;
 import com.hazelcast.instance.impl.OutOfMemoryErrorDispatcher;
+import com.hazelcast.internal.networking.rdma.RdmaConfig;
 
 import java.util.Set;
 
@@ -89,6 +90,46 @@ public final class Hazelcast {
      */
     public static HazelcastInstance newHazelcastInstance() {
         return HazelcastInstanceFactory.newHazelcastInstance(null);
+    }
+
+    /**
+     * Creates a new HazelcastInstance (a new node in a cluster).
+     * This method allows you to create and run multiple instances
+     * of Hazelcast cluster members on the same JVM.
+     * <p>
+     * To shutdown all running HazelcastInstances (all members on this JVM)
+     * call {@link #shutdownAll()}.
+     *
+     * Instead of looking for an RDMA configuration file in the classpath,
+     * Hazelcast will use the provided RDMA configuration file.
+     *
+     * @return the new HazelcastInstance
+     * @see #shutdownAll()
+     * @see #getHazelcastInstanceByName(String)
+     */
+    public static HazelcastInstance newHazelcastInstanceWithRdmaConfig(RdmaConfig rdmaConfig) {
+        HazelcastInstance instance = HazelcastInstanceFactory.newHazelcastInstance(null, rdmaConfig);
+        return instance;
+    }
+
+    /**
+     * Creates a new HazelcastInstance (a new node in a cluster).
+     * This method allows you to create and run multiple instances
+     * of Hazelcast cluster members on the same JVM.
+     * <p>
+     * To shutdown all running HazelcastInstances (all members on this JVM)
+     * call {@link #shutdownAll()}.
+     *
+     * Instead of looking for configuration files in the classpath,
+     * Hazelcast will use the provided configuration files.
+     *
+     * @return the new HazelcastInstance
+     * @see #shutdownAll()
+     * @see #getHazelcastInstanceByName(String)
+     */
+    public static HazelcastInstance newHazelcastInstanceWithRdmaConfig(Config config, RdmaConfig rdmaConfig) {
+        HazelcastInstance instance = HazelcastInstanceFactory.newHazelcastInstance(config, rdmaConfig);
+        return instance;
     }
 
     /**

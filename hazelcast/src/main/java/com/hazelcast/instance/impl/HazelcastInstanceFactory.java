@@ -22,6 +22,7 @@ import com.hazelcast.config.InvalidConfigurationException;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.internal.jmx.ManagementService;
+import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.util.ExceptionUtil;
 import com.hazelcast.internal.util.ModularJavaUtils;
 import com.hazelcast.logging.Logger;
@@ -105,7 +106,7 @@ public final class HazelcastInstanceFactory {
         }
 
         try {
-            return constructHazelcastInstance(config, name, new DefaultNodeContext(), future);
+            return constructHazelcastInstance(config, name, new DefaultNodeContext(), null, future);
         } catch (Throwable t) {
             INSTANCE_MAP.remove(name, future);
             future.setFailure(t);
@@ -129,6 +130,31 @@ public final class HazelcastInstanceFactory {
                 config,
                 config.getInstanceName(),
                 new DefaultNodeContext()
+        );
+    }
+
+    /**
+     * Creates a new Hazelcast instance.
+     *
+     * @param config the configuration to use; if <code>null</code>, the set of defaults
+     *               as specified in the XSD for the configuration XML will be used.
+     * @param rdmaConfig the RDMA configuration.
+     * @return the configured {@link HazelcastInstance}
+     */
+    public static HazelcastInstance newHazelcastInstance(Config config, RdmaConfig rdmaConfig) {
+        if (config == null) {
+            config = Config.load();
+        }
+
+        if( rdmaConfig == null){
+            rdmaConfig = new RdmaConfig();
+        }
+
+        return newHazelcastInstance(
+                config,
+                config.getInstanceName(),
+                new DefaultNodeContext(),
+                rdmaConfig
         );
     }
 
@@ -175,6 +201,11 @@ public final class HazelcastInstanceFactory {
      * @return the configured {@link HazelcastInstance}
      */
     public static HazelcastInstance newHazelcastInstance(Config config, String instanceName, NodeContext nodeContext) {
+        return newHazelcastInstance(config, instanceName, nodeContext, null);
+    }
+
+    public static HazelcastInstance newHazelcastInstance(Config config, String instanceName, NodeContext nodeContext,
+                                                         RdmaConfig rdmaConfig){
         if (config == null) {
             config = new XmlConfigBuilder().build();
         }
@@ -187,7 +218,7 @@ public final class HazelcastInstanceFactory {
         }
 
         try {
-            return constructHazelcastInstance(config, name, nodeContext, future);
+            return constructHazelcastInstance(config, name, nodeContext, rdmaConfig, future);
         } catch (Throwable t) {
             INSTANCE_MAP.remove(name, future);
             future.setFailure(t);
@@ -199,7 +230,9 @@ public final class HazelcastInstanceFactory {
         return new HazelcastInstanceProxy(hazelcastInstance);
     }
 
-    private static HazelcastInstanceProxy constructHazelcastInstance(Config config, String instanceName, NodeContext nodeContext,
+    private static HazelcastInstanceProxy constructHazelcastInstance(Config config, String instanceName,
+                                                                     NodeContext nodeContext,
+                                                                     RdmaConfig rdmaConfig,
                                                                      InstanceFuture<HazelcastInstanceProxy> future) {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
@@ -208,7 +241,8 @@ public final class HazelcastInstanceFactory {
             if (classLoader == null) {
                 Thread.currentThread().setContextClassLoader(HazelcastInstanceFactory.class.getClassLoader());
             }
-            HazelcastInstanceImpl hazelcastInstance = new HazelcastInstanceImpl(instanceName, config, nodeContext);
+            HazelcastInstanceImpl hazelcastInstance = new HazelcastInstanceImpl(instanceName, config, nodeContext,
+                    rdmaConfig);
             OutOfMemoryErrorDispatcher.registerServer(hazelcastInstance);
 
             proxy = newHazelcastProxy(hazelcastInstance);
