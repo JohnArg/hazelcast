@@ -172,8 +172,8 @@ public class RdmaServiceImpl implements RdmaService, RaftManagedService, Members
     }
 
     @Override
-    public boolean send(Operation op, Address target) {
-        return rdmaServer.send(op, target);
+    public boolean send(Operation op, Address target, String operationClassName) {
+        return rdmaServer.send(op, target, operationClassName);
     }
 
     public RdmaConfig getRdmaConfig() {

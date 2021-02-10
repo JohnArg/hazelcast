@@ -21,16 +21,16 @@ import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
 import jarg.rdmarpc.rpc.exception.RpcExecutionException;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
 import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
@@ -71,6 +71,9 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
     private InetSocketAddress discoveryAddress;
     private DiscoveryClient discoveryClient;
     private DiscoveryServiceProxy discoveryAPI;
+    // Message size metrics ============================
+    // Map<Operation Name, Map<ByteSize, Frequency>>
+    private Map<String, Map<Integer, Integer>> messageSizeHistograms;
 
 
     public RdmaConnectionManagerImpl(NodeEngine engine,
@@ -91,6 +94,7 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
         tcpToRdmaMap = new ConcurrentHashMap<>();
         inboundConnections = new ConcurrentHashMap<>();
         rdmaAddressConnectionMap = new ConcurrentHashMap<>();
+        messageSizeHistograms = new HashMap<>();
     }
 
     // bind server endpoint to configured address.
@@ -202,10 +206,16 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
                 // ignore - the remote side might have already disconnected from this server
             }
         }
+        // Write histogram data to file
+        for(Map.Entry<String, Map<Integer, Integer>> mapEntry : messageSizeHistograms.entrySet()){
+            writeHistogramData(mapEntry.getValue(), mapEntry.getKey());
+        }
+
         // reset the connection data structures (clearing them might be slower
         // than creating new objects, when having a lot of connections)
         initializeConnectionDataStructures();
     }
+
 
     @Override
     public RdmaServer<ActiveRdmaCommunicator> getServer() {
@@ -269,7 +279,7 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
     }
 
     @Override
-    public boolean transmit(Packet packet, Address target, int streamId) {
+    public boolean transmit(Packet packet, Address target, int streamId, String operationClassName) {
         checkNotNull(packet, "packet can't be null");
         checkNotNull(target, "target can't be null");
         logger.info("Sending packet.");
@@ -279,7 +289,7 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
             if(remoteConnection == null){
                 return false;
             }
-            return writeToConnection(remoteConnection, packet);
+            return writeToConnection(remoteConnection, packet, operationClassName);
         } catch (UnknownHostException e) {
             logger.severe(e);
         }
@@ -293,7 +303,7 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
      * @param packet the packet data to transmit.
      * @return true on success, false on failure.
      */
-    public boolean writeToConnection(RdmaServerConnection remoteConnection, Packet packet){
+    public boolean writeToConnection(RdmaServerConnection remoteConnection, Packet packet, String operationClassName){
         ActiveRdmaCommunicator endpoint = remoteConnection.getRdmaEndpoint();
         // Ask for an available Work Request from the Endpoint
         WorkRequestProxy workRequest = endpoint.getWorkRequestProxyProvider()
@@ -308,9 +318,54 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
             return false;
         }
         dataBuffer.flip();
+        // keep message size
+        updateHistogram(operationClassName, dataBuffer.limit());
         // now we can send the data to the remote side
         workRequest.post();
         return true;
+    }
+
+    private void updateHistogram(String operationName, int byteSize){
+        Map<Integer, Integer> histogram = messageSizeHistograms.get(operationName);
+        // create a histogram if it doesn't exist
+        if(histogram == null){
+            histogram = new HashMap<>();
+            messageSizeHistograms.put(operationName, histogram);
+        }
+        // calculate new frequency
+        Integer frequency = histogram.get(byteSize);
+        if(frequency == null){
+            histogram.put(byteSize, 1);
+        }else{
+            frequency ++;
+            histogram.put(byteSize, frequency);
+        }
+    }
+
+    private void writeHistogramData(Map<Integer, Integer> histogram, String operationName){
+        String[] rdmaAddressParts = localRdmaAddress.toString().substring(1).split("\\.|:");
+        String nodeName = rdmaAddressParts[3];
+        String histogramFileName = operationName + "_" + nodeName +  ".txt";
+
+        try(FileWriter fileWriter = new FileWriter(histogramFileName);
+            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+            // write the headings in comments in the first line
+            bufferedWriter.write("# " + operationName + " <Bytes, Frequency>\r\n");
+            List<Integer> byteSizesSorted = histogram.keySet().stream().sorted().collect(Collectors.toList());
+            // let's write the values now
+            byteSizesSorted.forEach((byteSize)->{
+                int frequency = histogram.get(byteSize);
+                try {
+                    bufferedWriter.write(byteSize + " " + frequency + "\n");
+                } catch (IOException e) {
+                    logger.severe("Error during writing histogram to file.", e);
+                }
+            });
+            bufferedWriter.flush();
+        } catch (IOException e) {
+            logger.severe("Error during writing histogram to file.", e);
+        }
+
     }
 
     /**
@@ -362,5 +417,15 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
 
     public InetSocketAddress getLocalRdmaAddress() {
         return localRdmaAddress;
+    }
+
+    @Override
+    public boolean transmit(Packet packet, Address target) {
+        return false;
+    }
+
+    @Override
+    public boolean transmit(Packet packet, Address target, int streamId) {
+        return false;
     }
 }

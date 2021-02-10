@@ -14,7 +14,7 @@ public interface RdmaService {
      * @param target the remote address to which the operation will be sent.
      * @return true for success or false for errors
      */
-    boolean send(Operation op, Address target);
+    boolean send(Operation op, Address target, String operationClassName);
 
     /**
      * Update the state of the service. If there are listeners, they should be notified.

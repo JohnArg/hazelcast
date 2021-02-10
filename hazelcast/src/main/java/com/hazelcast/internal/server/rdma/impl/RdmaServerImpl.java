@@ -82,13 +82,13 @@ public class RdmaServerImpl implements RdmaServer<ActiveRdmaCommunicator> {
     }
 
 
-    public boolean send(Operation op, Address target){
+    public boolean send(Operation op, Address target, String operationClassName){
         checkNotNull(target, "Target is required!");
         if (localMember.getAddress().equals(target)) {
             throw new IllegalArgumentException("Target is this node! -> " + target + ", op: " + op);
         }
         int streamId = op.getPartitionId();
-        return connectionManager.transmit(toPacket(op), target, streamId);
+        return connectionManager.transmit(toPacket(op), target, streamId, operationClassName);
     }
 
     // Todo - serialization copy optimization

@@ -159,47 +159,56 @@ final class NodeEngineRaftIntegration implements RaftIntegration{
 
     @Override
     public boolean send(PreVoteRequest request, RaftEndpoint target) {
-        return send(new PreVoteRequestOp(groupId, request), target);
+        return send(new PreVoteRequestOp(groupId, request), target,
+                PreVoteRequestOp.class.getSimpleName());
     }
 
     @Override
     public boolean send(PreVoteResponse response, RaftEndpoint target) {
-        return send(new PreVoteResponseOp(groupId, response), target);
+        return send(new PreVoteResponseOp(groupId, response), target,
+                PreVoteResponseOp.class.getSimpleName());
     }
 
     @Override
     public boolean send(VoteRequest request, RaftEndpoint target) {
-        return send(new VoteRequestOp(groupId, request), target);
+        return send(new VoteRequestOp(groupId, request), target,
+                VoteRequestOp.class.getSimpleName());
     }
 
     @Override
     public boolean send(VoteResponse response, RaftEndpoint target) {
-        return send(new VoteResponseOp(groupId, response), target);
+        return send(new VoteResponseOp(groupId, response), target,
+                VoteResponseOp.class.getSimpleName());
     }
 
     @Override
     public boolean send(AppendRequest request, RaftEndpoint target) {
-        return send(new AppendRequestOp(groupId, request), target);
+        return send(new AppendRequestOp(groupId, request), target,
+                AppendRequestOp.class.getSimpleName());
     }
 
     @Override
     public boolean send(AppendSuccessResponse response, RaftEndpoint target) {
-        return send(new AppendSuccessResponseOp(groupId, response), target);
+        return send(new AppendSuccessResponseOp(groupId, response), target,
+                AppendSuccessResponseOp.class.getSimpleName());
     }
 
     @Override
     public boolean send(AppendFailureResponse response, RaftEndpoint target) {
-        return send(new AppendFailureResponseOp(groupId, response), target);
+        return send(new AppendFailureResponseOp(groupId, response), target,
+                AppendFailureResponseOp.class.getSimpleName());
     }
 
     @Override
     public boolean send(InstallSnapshot request, RaftEndpoint target) {
-        return send(new InstallSnapshotOp(groupId, request), target);
+        return send(new InstallSnapshotOp(groupId, request), target,
+                InstallSnapshotOp.class.getSimpleName());
     }
 
     @Override
     public boolean send(TriggerLeaderElection request, RaftEndpoint target) {
-        return send(new TriggerLeaderElectionOp(groupId, request), target);
+        return send(new TriggerLeaderElectionOp(groupId, request), target,
+                TriggerLeaderElectionOp.class.getSimpleName());
     }
 
     @Override
@@ -244,7 +253,7 @@ final class NodeEngineRaftIntegration implements RaftIntegration{
         }
     }
 
-    private boolean send(AsyncRaftOp operation, RaftEndpoint target) {
+    private boolean send(AsyncRaftOp operation, RaftEndpoint target, String operationClassName) {
         CPMember targetMember = getCPMember(target);
         if (targetMember == null || localAddress.equals(targetMember.getAddress())) {
             if (localCPMember.getUuid().equals(target.getUuid())) {
@@ -259,7 +268,7 @@ final class NodeEngineRaftIntegration implements RaftIntegration{
 
         if(rdmaService.getLatestState().equals(RdmaServiceState.CONNECTIONS_READY)){
             rdmaLogger.info("Sending with RDMA");
-            return rdmaService.send(operation, targetMember.getAddress());
+            return rdmaService.send(operation, targetMember.getAddress(), operationClassName);
         }
         rdmaLogger.info("Sending with TCP ================================");
         return operationService.send(operation, targetMember.getAddress());
