@@ -62,12 +62,15 @@ import com.hazelcast.cp.internal.raft.impl.task.QueryTask;
 import com.hazelcast.cp.internal.raft.impl.task.RaftNodeStatusAwareTask;
 import com.hazelcast.cp.internal.raft.impl.task.ReplicateTask;
 import com.hazelcast.cp.internal.raft.impl.util.PostponedResponse;
+import com.hazelcast.internal.server.TimeStampManager;
 import com.hazelcast.internal.util.BiTuple;
 import com.hazelcast.internal.util.Clock;
 import com.hazelcast.internal.util.RandomPicker;
 import com.hazelcast.internal.util.collection.Long2ObjectHashMap;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.spi.impl.InternalCompletableFuture;
+import com.hazelcast.spi.impl.NodeEngineImpl;
+import jarg.rdmarpc.networking.dependencies.netbuffers.impl.OneSidedBufferManager;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -126,6 +129,9 @@ public final class RaftNodeImpl implements RaftNode {
     private boolean flushTaskSubmitted;
     private volatile RaftNodeStatus status = INITIAL;
 
+    // Latency benchmark related
+    private TimeStampManager timeStampManager;
+
     @SuppressWarnings("checkstyle:executablestatementcount")
     private RaftNodeImpl(CPGroupId groupId, RaftEndpoint localMember, Collection<RaftEndpoint> members, RaftStateStore stateStore,
                          RaftAlgorithmConfig raftAlgorithmConfig, RaftIntegration raftIntegration) {
@@ -155,6 +161,10 @@ public final class RaftNodeImpl implements RaftNode {
         } else {
             this.flushTask = new FlushTask();
         }
+
+        // Latency benchmark related
+        NodeEngineImpl nodeEngine = (NodeEngineImpl) raftIntegration.getNodeEngine();
+        timeStampManager = nodeEngine.getTimeStampManager();
     }
 
     @SuppressWarnings("checkstyle:executablestatementcount")
@@ -377,6 +387,8 @@ public final class RaftNodeImpl implements RaftNode {
 
     @Override
     public void handlePreVoteResponse(PreVoteResponse response) {
+        timeStampManager.createTimeStamp(response.toString(),
+                TimeStampManager.TimeStampCreatorType.RECEIVER);
         execute(new PreVoteResponseHandlerTask(this, response));
     }
 
@@ -387,6 +399,8 @@ public final class RaftNodeImpl implements RaftNode {
 
     @Override
     public void handleVoteResponse(VoteResponse response) {
+        timeStampManager.createTimeStamp(response.toString(),
+                TimeStampManager.TimeStampCreatorType.RECEIVER);
         execute(new VoteResponseHandlerTask(this, response));
     }
 
@@ -397,21 +411,29 @@ public final class RaftNodeImpl implements RaftNode {
 
     @Override
     public void handleAppendResponse(AppendSuccessResponse response) {
+        timeStampManager.createTimeStamp(response.toString(),
+                TimeStampManager.TimeStampCreatorType.RECEIVER);
         execute(new AppendSuccessResponseHandlerTask(this, response));
     }
 
     @Override
     public void handleAppendResponse(AppendFailureResponse response) {
+        timeStampManager.createTimeStamp(response.toString(),
+                TimeStampManager.TimeStampCreatorType.RECEIVER);
         execute(new AppendFailureResponseHandlerTask(this, response));
     }
 
     @Override
     public void handleInstallSnapshot(InstallSnapshot request) {
+        timeStampManager.createTimeStamp(request.toString(),
+                TimeStampManager.TimeStampCreatorType.RECEIVER);
         execute(new InstallSnapshotHandlerTask(this, request));
     }
 
     @Override
     public void handleTriggerLeaderElection(TriggerLeaderElection request) {
+        timeStampManager.createTimeStamp(request.toString(),
+                TimeStampManager.TimeStampCreatorType.RECEIVER);
         execute(new TriggerLeaderElectionHandlerTask(this, request));
     }
 
@@ -607,6 +629,8 @@ public final class RaftNodeImpl implements RaftNode {
     }
 
     public void send(PreVoteRequest request, RaftEndpoint target) {
+        timeStampManager.createTimeStamp(request.toString(),
+                TimeStampManager.TimeStampCreatorType.SENDER);
         raftIntegration.send(request, target);
     }
 
@@ -615,6 +639,8 @@ public final class RaftNodeImpl implements RaftNode {
     }
 
     public void send(VoteRequest request, RaftEndpoint target) {
+        timeStampManager.createTimeStamp(request.toString(),
+                TimeStampManager.TimeStampCreatorType.SENDER);
         raftIntegration.send(request, target);
     }
 
@@ -631,6 +657,8 @@ public final class RaftNodeImpl implements RaftNode {
     }
 
     public void send(TriggerLeaderElection request, RaftEndpoint target) {
+        timeStampManager.createTimeStamp(request.toString(),
+                TimeStampManager.TimeStampCreatorType.SENDER);
         raftIntegration.send(request, target);
     }
 
@@ -686,6 +714,8 @@ public final class RaftNodeImpl implements RaftNode {
             }
 
             // no need to submit the flush task here because we send committed state...
+            timeStampManager.createTimeStamp(installSnapshot.toString(),
+                    TimeStampManager.TimeStampCreatorType.SENDER);
             raftIntegration.send(installSnapshot, follower);
             followerState.setMaxAppendRequestBackoff();
             scheduleAppendAckResetTask();
@@ -738,6 +768,8 @@ public final class RaftNodeImpl implements RaftNode {
             logger.fine("Sending " + request + " to " + follower + " with next index: " + nextIndex);
         }
 
+        timeStampManager.createTimeStamp(request.toString(),
+                TimeStampManager.TimeStampCreatorType.SENDER);
         raftIntegration.send(request, follower);
 
         if (entries.length > 0 && entries[entries.length - 1].index() > leaderState.flushedLogIndex()) {

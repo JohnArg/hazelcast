@@ -258,11 +258,12 @@ final class NodeEngineRaftIntegration implements RaftIntegration{
         operation.setTargetEndpoint(target).setPartitionId(partitionId);
 
         if(rdmaService.getLatestState().equals(RdmaServiceState.CONNECTIONS_READY)){
-            rdmaLogger.info("Sending with RDMA");
             return rdmaService.send(operation, targetMember.getAddress());
         }
-        rdmaLogger.info("Sending with TCP ================================");
-        return operationService.send(operation, targetMember.getAddress());
+        // If we can't use RDMA fail
+        // This is done to verify that only RDMA is used in the latency tests
+        return false;
+//        return operationService.send(operation, targetMember.getAddress());
     }
 
     @Override
@@ -297,5 +298,10 @@ final class NodeEngineRaftIntegration implements RaftIntegration{
             }
             service.onRaftNodeTerminated(groupId);
         }
+    }
+
+    @Override
+    public NodeEngineImpl getNodeEngine() {
+        return nodeEngine;
     }
 }

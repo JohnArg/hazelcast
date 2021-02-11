@@ -239,6 +239,7 @@ public class RaftService implements ManagedService, SnapshotAwareService<Metadat
 
     @Override
     public void shutdown(boolean terminate) {
+
         if (getCPPersistenceService().isEnabled()) {
             List<Future> futures = new ArrayList<>(nodes.size());
             for (RaftNode raftNode : nodes.values()) {
@@ -826,7 +827,6 @@ public class RaftService implements ManagedService, SnapshotAwareService<Metadat
                     logger.warning("Not creating RaftNode[" + groupId + "] since the CP group is already destroyed.");
                     return;
                 }
-
                 node.start();
                 logger.info("RaftNode[" + groupId + "] is created with " + members);
             }
