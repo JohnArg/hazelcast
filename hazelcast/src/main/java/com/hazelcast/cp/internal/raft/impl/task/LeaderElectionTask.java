@@ -52,6 +52,7 @@ public class LeaderElectionTask extends RaftNodeStatusAwareTask implements Runna
         }
 
         VoteRequest request = state.toCandidate(disruptive);
+        request.rpcId = raftNode.getRpcId().incrementAndGet();
         logger.info("Leader election started for term: " + request.term() + ", last log index: " + request.lastLogIndex()
                 + ", last log term: " + request.lastLogTerm());
         raftNode.printMemberState();

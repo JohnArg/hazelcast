@@ -19,6 +19,7 @@ package com.hazelcast.cp.internal.raft.impl.dto;
 import com.hazelcast.cp.internal.raft.impl.RaftEndpoint;
 import com.hazelcast.cp.internal.raft.impl.RaftDataSerializerHook;
 import com.hazelcast.cp.internal.raft.impl.log.LogEntry;
+import com.hazelcast.internal.server.RpcIdentifier;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
@@ -37,7 +38,7 @@ import java.util.Arrays;
  * Invoked by leader to replicate log entries (§5.3);
  * also used as heartbeat (§5.2).
  */
-public class AppendRequest implements IdentifiedDataSerializable {
+public class AppendRequest extends RpcIdentifier implements IdentifiedDataSerializable {
 
     private RaftEndpoint leader;
     private int term;
@@ -119,6 +120,8 @@ public class AppendRequest implements IdentifiedDataSerializable {
         }
 
         out.writeLong(queryRound);
+
+        out.writeInt(rpcId);
     }
 
     @Override
@@ -136,6 +139,8 @@ public class AppendRequest implements IdentifiedDataSerializable {
         }
 
         queryRound = in.readLong();
+
+        rpcId = in.readInt();
     }
 
     @Override

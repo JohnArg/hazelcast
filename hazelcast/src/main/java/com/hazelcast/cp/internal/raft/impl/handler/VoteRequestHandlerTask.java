@@ -66,14 +66,18 @@ public class VoteRequestHandlerTask extends RaftNodeStatusAwareTask implements R
         if (!req.isDisruptive() && raftNode.lastAppendEntriesTimestamp() > leaderElectionTimeoutDeadline
                 && !req.candidate().equals(state.leader())) {
             logger.info("Rejecting " + req + " since received append entries recently.");
-            raftNode.send(new VoteResponse(localMember, state.term(), false), req.candidate());
+            VoteResponse voteResponse = new VoteResponse(localMember, state.term(), false);
+            voteResponse.rpcId = req.rpcId;
+            raftNode.send(voteResponse, req.candidate());
             return;
         }
 
         // Reply false if term < currentTerm (§5.1)
         if (state.term() > req.term()) {
             logger.info("Rejecting " + req + " since current term: " + state.term() + " is bigger");
-            raftNode.send(new VoteResponse(localMember, state.term(), false), req.candidate());
+            VoteResponse voteResponse = new VoteResponse(localMember, state.term(), false);
+            voteResponse.rpcId = req.rpcId;
+            raftNode.send(voteResponse, req.candidate());
             return;
         }
 
@@ -90,7 +94,9 @@ public class VoteRequestHandlerTask extends RaftNodeStatusAwareTask implements R
 
         if (state.leader() != null && !req.candidate().equals(state.leader())) {
             logger.warning("Rejecting " + req + " since we have a leader: " + state.leader());
-            raftNode.send(new VoteResponse(localMember, req.term(), false), req.candidate());
+            VoteResponse voteResponse = new VoteResponse(localMember, req.term(), false);
+            voteResponse.rpcId = req.rpcId;
+            raftNode.send(voteResponse, req.candidate());
             return;
         }
 
@@ -101,26 +107,34 @@ public class VoteRequestHandlerTask extends RaftNodeStatusAwareTask implements R
             } else {
                 logger.info("Duplicate " + req + ". currently voted-for: " + state.votedFor());
             }
-            raftNode.send(new VoteResponse(localMember, req.term(), granted), req.candidate());
+            VoteResponse voteResponse = new VoteResponse(localMember, req.term(), granted);
+            voteResponse.rpcId = req.rpcId;
+            raftNode.send(voteResponse, req.candidate());
             return;
         }
 
         RaftLog raftLog = state.log();
         if (raftLog.lastLogOrSnapshotTerm() > req.lastLogTerm()) {
             logger.info("Rejecting " + req + " since our last log term: " + raftLog.lastLogOrSnapshotTerm() + " is greater");
-            raftNode.send(new VoteResponse(localMember, req.term(), false), req.candidate());
+            VoteResponse voteResponse = new VoteResponse(localMember, req.term(), false);
+            voteResponse.rpcId = req.rpcId;
+            raftNode.send(voteResponse, req.candidate());
             return;
         }
 
         if (raftLog.lastLogOrSnapshotTerm() == req.lastLogTerm() && raftLog.lastLogOrSnapshotIndex() > req.lastLogIndex()) {
             logger.info("Rejecting " + req + " since our last log index: " + raftLog.lastLogOrSnapshotIndex() + " is greater");
-            raftNode.send(new VoteResponse(localMember, req.term(), false), req.candidate());
+            VoteResponse voteResponse = new VoteResponse(localMember, req.term(), false);
+            voteResponse.rpcId = req.rpcId;
+            raftNode.send(voteResponse, req.candidate());
             return;
         }
 
         logger.info("Granted vote for " + req);
         state.persistVote(req.term(), req.candidate());
 
-        raftNode.send(new VoteResponse(localMember, req.term(), true), req.candidate());
+        VoteResponse voteResponse = new VoteResponse(localMember, req.term(), true);
+        voteResponse.rpcId = req.rpcId;
+        raftNode.send(voteResponse, req.candidate());
     }
 }

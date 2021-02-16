@@ -205,6 +205,7 @@ public class AppendRequestHandlerTask extends RaftNodeStatusAwareTask implements
 
         try {
             AppendSuccessResponse resp = new AppendSuccessResponse(localMember(), state.term(), lastLogIndex, req.queryRound());
+            resp.rpcId = req.rpcId;
             raftNode.send(resp, req.leader());
         } finally {
             if (state.commitIndex() > oldCommitIndex) {
@@ -261,6 +262,9 @@ public class AppendRequestHandlerTask extends RaftNodeStatusAwareTask implements
     }
 
     private AppendFailureResponse createFailureResponse(int term) {
-        return new AppendFailureResponse(localMember(), term, req.prevLogIndex() + 1);
+        AppendFailureResponse response =
+                new AppendFailureResponse(localMember(), term, req.prevLogIndex() + 1);
+        response.rpcId = req.rpcId;
+        return response;
     }
 }

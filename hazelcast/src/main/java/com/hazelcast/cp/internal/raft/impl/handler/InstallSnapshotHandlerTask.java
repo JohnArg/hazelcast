@@ -63,7 +63,10 @@ public class InstallSnapshotHandlerTask extends RaftNodeStatusAwareTask implemen
                 logger.warning("Stale snapshot: " + req + " received in current term: " + state.term());
             }
 
-            raftNode.send(new AppendFailureResponse(localMember(), state.term(), snapshot.index() + 1), req.leader());
+            AppendFailureResponse response =
+                    new AppendFailureResponse(localMember(), state.term(), snapshot.index() + 1);
+            response.rpcId = req.rpcId;
+            raftNode.send(response, req.leader());
             return;
         }
 
@@ -85,7 +88,10 @@ public class InstallSnapshotHandlerTask extends RaftNodeStatusAwareTask implemen
         raftNode.updateLastAppendEntriesTimestamp();
 
         if (raftNode.installSnapshot(snapshot)) {
-            raftNode.send(new AppendSuccessResponse(localMember(), req.term(), snapshot.index(), req.queryRound()), req.leader());
+            AppendSuccessResponse response =
+                    new AppendSuccessResponse(localMember(), req.term(), snapshot.index(), req.queryRound());
+            response.rpcId = req.rpcId;
+            raftNode.send(response, req.leader());
         }
     }
 }

@@ -21,15 +21,15 @@ public class TimeStampManager {
     }
 
 
-    public void createTimeStamp(String operationString, TimeStampCreatorType creatorType){
-        operationTimeStamps.add(new TimeStamp(operationString, creatorType));
+    public void createTimeStamp(String operationName, String memberId, int rpcId, TimeStampCreatorType creatorType){
+        operationTimeStamps.add(new TimeStamp(operationName, memberId, rpcId, creatorType));
     }
 
     public void export(String filename){
         try(FileWriter fileWriter = new FileWriter(filename);
             BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
             bufferedWriter.write("# Timestamps created : " + operationTimeStamps.size() + "\r\n");
-            bufferedWriter.write("# <operation> <creator type> <time>\r\n");
+            bufferedWriter.write("# <operation> <rpc id> <creator type> <time>\r\n");
             for(TimeStamp timeStamp : operationTimeStamps){
                 bufferedWriter.write(timeStamp.toString() + "\r\n");
             }
@@ -47,13 +47,17 @@ public class TimeStampManager {
     }
 
     private class TimeStamp{
-        String oparetionString;
-        long time;
+        String operationName;
+        String memberId;
+        int rpcId;
         TimeStampCreatorType creatorType;
+        long time;
 
-        public TimeStamp(String operationString, TimeStampCreatorType creatorType){
-            this.oparetionString = operationString;
+        public TimeStamp(String operationName, String memberId, int rpcId, TimeStampCreatorType creatorType){
+            this.operationName = operationName;
+            this.memberId = memberId;
             this.creatorType = creatorType;
+            this.rpcId = rpcId;
             time = System.nanoTime();
         }
 
@@ -67,7 +71,7 @@ public class TimeStampManager {
 
         @Override
         public String toString() {
-            return oparetionString + " " + creatorType + " " + time;
+            return operationName + " " + memberId + " " + rpcId + " " + creatorType + " " + time;
         }
     }
 

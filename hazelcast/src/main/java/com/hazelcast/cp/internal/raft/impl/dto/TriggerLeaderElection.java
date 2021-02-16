@@ -18,6 +18,7 @@ package com.hazelcast.cp.internal.raft.impl.dto;
 
 import com.hazelcast.cp.internal.raft.impl.RaftDataSerializerHook;
 import com.hazelcast.cp.internal.raft.impl.RaftEndpoint;
+import com.hazelcast.internal.server.RpcIdentifier;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
@@ -30,7 +31,7 @@ import java.io.IOException;
  * See <i>4.2.3 Disruptive servers</i> section
  * of the Raft dissertation.
  */
-public class TriggerLeaderElection implements IdentifiedDataSerializable {
+public class TriggerLeaderElection extends RpcIdentifier implements IdentifiedDataSerializable {
 
     private RaftEndpoint leader;
     private int term;
@@ -79,6 +80,8 @@ public class TriggerLeaderElection implements IdentifiedDataSerializable {
         out.writeInt(term);
         out.writeInt(lastLogTerm);
         out.writeLong(lastLogIndex);
+
+        out.writeInt(rpcId);
     }
 
     @Override
@@ -87,6 +90,8 @@ public class TriggerLeaderElection implements IdentifiedDataSerializable {
         term = in.readInt();
         lastLogTerm = in.readInt();
         lastLogIndex = in.readLong();
+
+        rpcId = in.readInt();
     }
 
     @Override

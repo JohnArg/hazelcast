@@ -18,6 +18,7 @@ package com.hazelcast.cp.internal.raft.impl.dto;
 
 import com.hazelcast.cp.internal.raft.impl.RaftEndpoint;
 import com.hazelcast.cp.internal.raft.impl.RaftDataSerializerHook;
+import com.hazelcast.internal.server.RpcIdentifier;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
@@ -33,7 +34,7 @@ import java.io.IOException;
  * <p>
  * Invoked by candidates to gather votes (§5.2).
  */
-public class VoteRequest implements IdentifiedDataSerializable {
+public class VoteRequest extends RpcIdentifier implements IdentifiedDataSerializable {
 
     private RaftEndpoint candidate;
     private int term;
@@ -89,6 +90,8 @@ public class VoteRequest implements IdentifiedDataSerializable {
         out.writeInt(lastLogTerm);
         out.writeLong(lastLogIndex);
         out.writeBoolean(disruptive);
+
+        out.writeInt(rpcId);
     }
 
     @Override
@@ -98,6 +101,8 @@ public class VoteRequest implements IdentifiedDataSerializable {
         lastLogTerm = in.readInt();
         lastLogIndex = in.readLong();
         disruptive = in.readBoolean();
+
+        rpcId = in.readInt();
     }
 
     @Override

@@ -262,8 +262,10 @@ final class NodeEngineRaftIntegration implements RaftIntegration{
         }
         // If we can't use RDMA fail
         // This is done to verify that only RDMA is used in the latency tests
-        return false;
-//        return operationService.send(operation, targetMember.getAddress());
+//        return false;
+
+        // Use TCP
+        return operationService.send(operation, targetMember.getAddress());
     }
 
     @Override

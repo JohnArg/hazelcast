@@ -18,6 +18,7 @@ package com.hazelcast.cp.internal.raft.impl.dto;
 
 import com.hazelcast.cp.internal.raft.impl.RaftEndpoint;
 import com.hazelcast.cp.internal.raft.impl.RaftDataSerializerHook;
+import com.hazelcast.internal.server.RpcIdentifier;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
@@ -34,7 +35,7 @@ import java.io.IOException;
  * @see AppendRequest
  * @see AppendFailureResponse
  */
-public class AppendSuccessResponse implements IdentifiedDataSerializable {
+public class AppendSuccessResponse extends RpcIdentifier implements IdentifiedDataSerializable {
 
     private RaftEndpoint follower;
     private int term;
@@ -83,6 +84,8 @@ public class AppendSuccessResponse implements IdentifiedDataSerializable {
         out.writeObject(follower);
         out.writeLong(lastLogIndex);
         out.writeLong(queryRound);
+
+        out.writeInt(rpcId);
     }
 
     @Override
@@ -91,6 +94,24 @@ public class AppendSuccessResponse implements IdentifiedDataSerializable {
         follower = in.readObject();
         lastLogIndex = in.readLong();
         queryRound = in.readLong();
+
+        rpcId = in.readInt();
+    }
+
+    public RaftEndpoint getFollower() {
+        return follower;
+    }
+
+    public int getTerm() {
+        return term;
+    }
+
+    public long getLastLogIndex() {
+        return lastLogIndex;
+    }
+
+    public long getQueryRound() {
+        return queryRound;
     }
 
     @Override
