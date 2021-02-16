@@ -790,6 +790,7 @@ public final class RaftNodeImpl implements RaftNode {
 
         AppendRequest request = new AppendRequest(getLocalMember(), state.term(), prevEntryTerm, prevEntryIndex,
                 state.commitIndex(), entries, leaderState.queryRound());
+        logger.info("[RDMA LAT] "+request.toString());
 
         if (logger.isFineEnabled()) {
             logger.fine("Sending " + request + " to " + follower + " with next index: " + nextIndex);
