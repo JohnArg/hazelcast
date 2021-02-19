@@ -167,7 +167,7 @@ public final class RaftNodeImpl implements RaftNode {
         // Latency benchmark related
         NodeEngineImpl nodeEngine = (NodeEngineImpl) raftIntegration.getNodeEngine();
         timeStampManager = nodeEngine.getTimeStampManager();
-        rpcId = new AtomicInteger(0);
+        rpcId = new AtomicInteger(1);
     }
 
     @SuppressWarnings("checkstyle:executablestatementcount")
@@ -413,24 +413,35 @@ public final class RaftNodeImpl implements RaftNode {
 
     @Override
     public void handleAppendRequest(AppendRequest request) {
+        // this will be run by the followers
+        if(request.rpcId > 0){
+            timeStampManager.createTimeStamp(AppendRequestHandlerTask.class.getSimpleName(),
+                    getLocalMember().getUuid().toString(),
+                    request.rpcId,
+                    TimeStampManager.TimeStampCreatorType.RECEIVER);
+        }
         execute(new AppendRequestHandlerTask(this, request));
     }
 
     @Override
     public void handleAppendResponse(AppendSuccessResponse response) {
-        timeStampManager.createTimeStamp(AppendSuccessResponse.class.getSimpleName(),
-                response.getFollower().getUuid().toString(),
-                response.rpcId,
-                TimeStampManager.TimeStampCreatorType.RECEIVER);
+        if(response.rpcId > 0){
+            timeStampManager.createTimeStamp(AppendSuccessResponse.class.getSimpleName(),
+                    response.getFollower().getUuid().toString(),
+                    response.rpcId,
+                    TimeStampManager.TimeStampCreatorType.RECEIVER);
+        }
         execute(new AppendSuccessResponseHandlerTask(this, response));
     }
 
     @Override
     public void handleAppendResponse(AppendFailureResponse response) {
-        timeStampManager.createTimeStamp(AppendFailureResponse.class.getSimpleName(),
-                response.getFollower().getUuid().toString(),
-                response.rpcId,
-                TimeStampManager.TimeStampCreatorType.RECEIVER);
+        if(response.rpcId > 0){
+            timeStampManager.createTimeStamp(AppendFailureResponse.class.getSimpleName(),
+                    response.getFollower().getUuid().toString(),
+                    response.rpcId,
+                    TimeStampManager.TimeStampCreatorType.RECEIVER);
+        }
         execute(new AppendFailureResponseHandlerTask(this, response));
     }
 
@@ -790,17 +801,22 @@ public final class RaftNodeImpl implements RaftNode {
 
         AppendRequest request = new AppendRequest(getLocalMember(), state.term(), prevEntryTerm, prevEntryIndex,
                 state.commitIndex(), entries, leaderState.queryRound());
-        logger.info("[RDMA LAT] "+request.toString());
 
         if (logger.isFineEnabled()) {
             logger.fine("Sending " + request + " to " + follower + " with next index: " + nextIndex);
         }
 
-        request.rpcId = rpcId.incrementAndGet();
-        timeStampManager.createTimeStamp(AppendRequest.class.getSimpleName(),
-                follower.getUuid().toString(),
-                request.rpcId,
-                TimeStampManager.TimeStampCreatorType.SENDER);
+        //  Avoid timestamps for empty log entries
+        if(entries.length > 0){
+            request.rpcId = rpcId.incrementAndGet();
+            timeStampManager.createTimeStamp(AppendRequest.class.getSimpleName(),
+                    follower.getUuid().toString(),
+                    request.rpcId,
+                    TimeStampManager.TimeStampCreatorType.SENDER);
+        }else{
+            rpcId.incrementAndGet(); // increment in order to avoid reusing in subsequent requests
+            request.rpcId = -1;
+        }
         raftIntegration.send(request, follower);
 
         if (entries.length > 0 && entries[entries.length - 1].index() > leaderState.flushedLogIndex()) {
@@ -1536,6 +1552,10 @@ public final class RaftNodeImpl implements RaftNode {
 
     public AtomicInteger getRpcId() {
         return rpcId;
+    }
+
+    public TimeStampManager getTimeStampManager() {
+        return timeStampManager;
     }
 
     @Override
