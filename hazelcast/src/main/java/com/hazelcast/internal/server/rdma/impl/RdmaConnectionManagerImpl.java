@@ -282,7 +282,6 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
     public boolean transmit(Packet packet, Address target, int streamId, String operationClassName) {
         checkNotNull(packet, "packet can't be null");
         checkNotNull(target, "target can't be null");
-        logger.info("Sending packet.");
         try {
             // find the RDMA connection from the TCP address
             RdmaServerConnection remoteConnection = tcpToRdmaMap.get(target.getInetSocketAddress());
