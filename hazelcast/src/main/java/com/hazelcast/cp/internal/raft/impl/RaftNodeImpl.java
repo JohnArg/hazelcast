@@ -730,7 +730,6 @@ public final class RaftNodeImpl implements RaftNode {
             entries = new LogEntry[0];
             shouldBackoff = false;
         }
-
         AppendRequest request = new AppendRequest(getLocalMember(), state.term(), prevEntryTerm, prevEntryIndex,
                 state.commitIndex(), entries, leaderState.queryRound());
 

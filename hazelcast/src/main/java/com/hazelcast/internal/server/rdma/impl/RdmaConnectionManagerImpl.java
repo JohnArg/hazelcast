@@ -373,7 +373,6 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
      * @param packet the received packet.
      */
     public void onReceiveFromConnection(Packet packet){
-        logger.info("Received packet");
         packetDispatcher.accept(packet);
     }
 
