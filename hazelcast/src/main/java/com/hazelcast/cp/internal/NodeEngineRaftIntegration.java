@@ -258,10 +258,8 @@ final class NodeEngineRaftIntegration implements RaftIntegration{
         operation.setTargetEndpoint(target).setPartitionId(partitionId);
 
         if(rdmaService.getLatestState().equals(RdmaServiceState.CONNECTIONS_READY)){
-            rdmaLogger.info("Sending with RDMA");
             return rdmaService.send(operation, targetMember.getAddress());
         }
-        rdmaLogger.info("Sending with TCP ================================");
         return operationService.send(operation, targetMember.getAddress());
     }
 
