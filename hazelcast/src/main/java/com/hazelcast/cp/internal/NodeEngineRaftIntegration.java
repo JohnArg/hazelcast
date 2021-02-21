@@ -260,10 +260,6 @@ final class NodeEngineRaftIntegration implements RaftIntegration{
         if(rdmaService.getLatestState().equals(RdmaServiceState.CONNECTIONS_READY)){
             return rdmaService.send(operation, targetMember.getAddress());
         }
-        // If we can't use RDMA fail
-        // This is done to verify that only RDMA is used in the latency tests
-//        return false;
-
         // Use TCP
         return operationService.send(operation, targetMember.getAddress());
     }
