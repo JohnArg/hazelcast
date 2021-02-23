@@ -45,7 +45,7 @@ import com.hazelcast.internal.partition.InternalPartitionService;
 import com.hazelcast.internal.partition.MigrationInfo;
 import com.hazelcast.internal.serialization.Data;
 import com.hazelcast.internal.serialization.SerializationService;
-import com.hazelcast.internal.server.TimeStampManager;
+import com.hazelcast.internal.server.benchmarks.timestamps.TimeStampManager;
 import com.hazelcast.internal.services.PostJoinAwareService;
 import com.hazelcast.internal.services.PreJoinAwareService;
 import com.hazelcast.internal.usercodedeployment.UserCodeDeploymentClassLoader;
@@ -132,7 +132,9 @@ public class NodeEngineImpl implements NodeEngine {
     private TimeStampManager timeStampManager;
     // Keep the last part of the local member's TCP address here
     private String localNodeId;
-    private String timestampFileName;
+    private String rpcTimeStampFileName;
+    private String serializationTimestampFileName;
+    private String lowLevelTimestampFileName;
 
     @SuppressWarnings("checkstyle:executablestatementcount")
     public NodeEngineImpl(Node node) {
@@ -242,11 +244,12 @@ public class NodeEngineImpl implements NodeEngine {
         node.getNodeExtension().registerPlugins(diagnostics);
 
         // Latency benchmark related
-        timeStampManager = new TimeStampManager(this.logger);
         Member localMember = getLocalMember();
         String[] addressParts = localMember.getSocketAddress().getAddress().toString().split("\\.");
         localNodeId = addressParts[3];
-        timestampFileName = "Lat_" + localNodeId+".txt";
+        rpcTimeStampFileName = "Lat_" + localNodeId+".txt";
+        serializationTimestampFileName = "Serial_" + localNodeId+".txt";
+        lowLevelTimestampFileName = "LowLevel_" + localNodeId+".txt";
     }
 
     public ConcurrencyDetection getConcurrencyDetection() {
@@ -551,7 +554,9 @@ public class NodeEngineImpl implements NodeEngine {
         }
 
         // export latency results
-        timeStampManager.export(timestampFileName);
+        timeStampManager.export(rpcTimeStampFileName, TimeStampManager.TimeStampType.RPC);
+        timeStampManager.export(serializationTimestampFileName, TimeStampManager.TimeStampType.SERIALIZATION);
+        timeStampManager.export(lowLevelTimestampFileName, TimeStampManager.TimeStampType.LOW_LEVEL);
     }
 
     // has to be public, it's used by Jet
@@ -574,5 +579,9 @@ public class NodeEngineImpl implements NodeEngine {
 
     public TimeStampManager getTimeStampManager() {
         return timeStampManager;
+    }
+
+    public void setTimeStampManager(TimeStampManager timeStampManager) {
+        this.timeStampManager = timeStampManager;
     }
 }

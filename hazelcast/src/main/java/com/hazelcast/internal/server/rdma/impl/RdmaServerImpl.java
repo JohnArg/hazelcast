@@ -6,9 +6,13 @@ import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.serialization.InternalSerializationService;
+import com.hazelcast.internal.server.benchmarks.timestamps.LowLevelTimeStamp;
+import com.hazelcast.internal.server.benchmarks.timestamps.SerializationTimeStamp;
+import com.hazelcast.internal.server.benchmarks.timestamps.TimeStampManager;
 import com.hazelcast.internal.server.rdma.RdmaConnectionManager;
 import com.hazelcast.internal.server.rdma.RdmaServer;
 import com.hazelcast.spi.impl.NodeEngine;
+import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.spi.impl.operationservice.Operation;
 import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import org.jetbrains.annotations.NotNull;
@@ -18,6 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import static com.hazelcast.internal.nio.Packet.FLAG_URGENT;
+import static com.hazelcast.internal.server.benchmarks.timestamps.SerializationTimeStamp.SerializationType.SERIALIZATION;
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
 
 /**
@@ -29,6 +34,8 @@ public class RdmaServerImpl implements RdmaServer<ActiveRdmaCommunicator> {
     private RdmaConnectionManagerImpl connectionManager;
     private AtomicBoolean isLive;
     private final InternalSerializationService serializationService;
+    private TimeStampManager timeStampManager;
+    private NodeEngineImpl nodeEngine;
 
 
     public RdmaServerImpl(NodeEngine engine, Member localMember, Consumer<Packet> packetDispatcher,
@@ -41,6 +48,9 @@ public class RdmaServerImpl implements RdmaServer<ActiveRdmaCommunicator> {
                 this, rdmaConfig);
         isLive = new AtomicBoolean(false);
         this.serializationService = serializationService;
+        this.nodeEngine = (NodeEngineImpl) engine;
+        this.timeStampManager = new TimeStampManager(logger);
+        ((NodeEngineImpl) engine).setTimeStampManager(timeStampManager);
     }
 
     @Override
@@ -88,11 +98,22 @@ public class RdmaServerImpl implements RdmaServer<ActiveRdmaCommunicator> {
             throw new IllegalArgumentException("Target is this node! -> " + target + ", op: " + op);
         }
         int streamId = op.getPartitionId();
-        return connectionManager.transmit(toPacket(op), target, streamId);
+
+        Packet packetToSend = toPacket(op);
+
+        timeStampManager.createLowLevelTimeStamp("Transmit", packetToSend.totalSize(),
+                LowLevelTimeStamp.TimeStampCreatingPoint.START);
+        boolean success = connectionManager.transmit(packetToSend, target, streamId);
+        timeStampManager.createLowLevelTimeStamp("Transmit", packetToSend.totalSize(),
+                LowLevelTimeStamp.TimeStampCreatingPoint.END);
+        return success;
     }
 
     // Todo - serialization copy optimization
     private Packet toPacket(Operation op) {
+        timeStampManager.createSerializationTimeStamp("PacketSerialization",
+                SERIALIZATION, 0,
+                LowLevelTimeStamp.TimeStampCreatingPoint.START);
         byte[] bytes = serializationService.toBytes(op);
         int partitionId = op.getPartitionId();
         Packet packet = new Packet(bytes, partitionId).setPacketType(Packet.Type.OPERATION);
@@ -100,6 +121,9 @@ public class RdmaServerImpl implements RdmaServer<ActiveRdmaCommunicator> {
         if (op.isUrgent()) {
             packet.raiseFlags(FLAG_URGENT);
         }
+        timeStampManager.createSerializationTimeStamp("PacketSerialization",
+                SERIALIZATION, bytes.length,
+                LowLevelTimeStamp.TimeStampCreatingPoint.END);
         return packet;
     }
 }

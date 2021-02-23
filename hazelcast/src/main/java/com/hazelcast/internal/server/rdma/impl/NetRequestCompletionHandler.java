@@ -3,37 +3,36 @@ package com.hazelcast.internal.server.rdma.impl;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.nio.PacketIOHelper;
+import com.hazelcast.internal.server.benchmarks.timestamps.TimeStampManager;
 import com.hazelcast.internal.server.rdma.RdmaServerConnection;
 import com.hazelcast.spi.impl.NodeEngine;
-import com.ibm.disni.RdmaActiveEndpoint;
+import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.ibm.disni.verbs.IbvWC;
 import discovery.common.api.ServerIdentifier;
 import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
 import jarg.rdmarpc.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
 import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxyProvider;
 import jarg.rdmarpc.networking.dependencies.netrequests.types.PostedRequestType;
-import jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType;
 import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.function.Consumer;
 
+import static com.hazelcast.internal.server.benchmarks.timestamps.LowLevelTimeStamp.TimeStampCreatingPoint.END;
+import static com.hazelcast.internal.server.benchmarks.timestamps.LowLevelTimeStamp.TimeStampCreatingPoint.START;
+import static com.hazelcast.internal.server.benchmarks.timestamps.SerializationTimeStamp.SerializationType.DESERIALIZATION;
 import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_RECV;
 import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
-    private NodeEngine nodeEngine;
     private RdmaLogger logger;
     private RdmaConnectionManagerImpl connectionManager;
-    private Consumer<Packet> packetDispatcher;
+    private TimeStampManager timeStampManager;
 
     public NetRequestCompletionHandler(NodeEngine engine, RdmaConnectionManagerImpl connectionManager) {
-        this.nodeEngine = engine;
         this.logger = new RdmaLogger(engine.getLogger(NetRequestCompletionHandler.class));
         this.connectionManager = connectionManager;
-        this.packetDispatcher = connectionManager.getPacketDispatcher();
+        this.timeStampManager = ((NodeEngineImpl) engine).getTimeStampManager();
     }
 
     @Override
@@ -57,11 +56,16 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
                 logger.severe("Cannot retrieve socket address from communicator.", e);
                 return;
             }
+            timeStampManager.createSerializationTimeStamp("PacketDeserialization",
+                    DESERIALIZATION, 0,
+                    START);
             // Sent Data => Packet
             do{
                 receivedPacket = packetIOHelper.readFrom(receiveProxy.getBuffer());
             }while (receivedPacket == null);
-
+            timeStampManager.createSerializationTimeStamp("PacketDeserialization",
+                    DESERIALIZATION, receivedPacket.totalSize(),
+                    END);
             // Handle Packet =======================================
             if(receivedPacket.getPacketType().equals(Packet.Type.SERVER_CONTROL)){
                 ServerIdentifier serverIdentifier = new ServerIdentifier();
@@ -90,7 +94,10 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
                 }
                 // must free up this work request, so that it can be reused for RDMA communications
                 receiveProxy.releaseWorkRequest();
+
+                timeStampManager.createLowLevelTimeStamp("PacketDispatch", receivedPacket.totalSize(), START);
                 connectionManager.onReceiveFromConnection(receivedPacket);
+                timeStampManager.createLowLevelTimeStamp("PacketDispatch", receivedPacket.totalSize(), END);
             }
         }
     }
