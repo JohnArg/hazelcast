@@ -743,10 +743,9 @@ public final class RaftNodeImpl implements RaftNode {
                 && (!raftLog.containsLogEntry(nextIndex) || (nextIndex > 1 && !raftLog.containsLogEntry(nextIndex - 1)))) {
             InstallSnapshot installSnapshot = new InstallSnapshot(state.localEndpoint(), state.term(), raftLog.snapshot(),
                     leaderState.queryRound());
-            if (logger.isFineEnabled()) {
-                logger.fine("Sending " + installSnapshot + " to " + follower + " since next index: " + nextIndex
-                        + " <= snapshot index: " + raftLog.snapshotIndex());
-            }
+
+            logger.info("[INSTALL SNAP] Sending " + installSnapshot + " to " + follower + " since next index: " + nextIndex
+                    + " <= snapshot index: " + raftLog.snapshotIndex());
 
             // no need to submit the flush task here because we send committed state...
             installSnapshot.rpcId = rpcId.incrementAndGet();
@@ -784,6 +783,9 @@ public final class RaftNodeImpl implements RaftNode {
                 // the leader should begin to send the actual entries
                 long end = min(nextIndex + appendRequestMaxEntryCount, raftLog.lastLogOrSnapshotIndex());
                 entries = raftLog.getEntriesBetween(nextIndex, end);
+                if(entries.length > 1){
+                    logger.info("[ENTRIES SIZE] Sending "+entries.length+" entries.");
+                }
             } else {
                 // The follower has caught up with the leader. Sending an empty append request as a heartbeat...
                 entries = new LogEntry[0];
