@@ -782,9 +782,6 @@ public final class RaftNodeImpl implements RaftNode {
                 // the leader should begin to send the actual entries
                 long end = min(nextIndex + appendRequestMaxEntryCount, raftLog.lastLogOrSnapshotIndex());
                 entries = raftLog.getEntriesBetween(nextIndex, end);
-                if(entries.length > 1){
-                    logger.info("[ENTRIES SIZE] Sending "+entries.length+" entries.");
-                }
             } else {
                 // The follower has caught up with the leader. Sending an empty append request as a heartbeat...
                 entries = new LogEntry[0];
