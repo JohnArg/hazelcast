@@ -8,6 +8,7 @@ import com.hazelcast.internal.networking.rdma.RdmaServiceState;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.nio.PacketIOHelper;
+import com.hazelcast.internal.server.benchmarks.TimeStampManager;
 import com.hazelcast.internal.server.rdma.RdmaConnectionManager;
 import com.hazelcast.internal.server.rdma.RdmaServer;
 import com.hazelcast.internal.server.rdma.RdmaServerConnection;
@@ -317,6 +318,17 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
      * @param packet the received packet.
      */
     public void onReceiveFromConnection(Packet packet){
+        // record time at this point
+        TimeStampManager.TimeStamp timeStamp = new TimeStampManager.TimeStamp();
+        /* We need to turn the packet into an operation in order to identify
+        * what type of request are we handling and which RPC id does it have.
+        * We will then use that to associate the timestamp with the RPC.
+        * Since this is supposed to be the end of the time we are measuring
+        * for the RPC networking code, the extra latency introduced by the
+        * code below does not matter.
+        */
+
+
         packetDispatcher.accept(packet);
     }
 

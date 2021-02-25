@@ -62,7 +62,7 @@ import com.hazelcast.cp.internal.raft.impl.task.QueryTask;
 import com.hazelcast.cp.internal.raft.impl.task.RaftNodeStatusAwareTask;
 import com.hazelcast.cp.internal.raft.impl.task.ReplicateTask;
 import com.hazelcast.cp.internal.raft.impl.util.PostponedResponse;
-import com.hazelcast.internal.server.TimeStampManager;
+import com.hazelcast.internal.server.benchmarks.TimeStampManager;
 import com.hazelcast.internal.util.BiTuple;
 import com.hazelcast.internal.util.Clock;
 import com.hazelcast.internal.util.RandomPicker;
@@ -70,7 +70,6 @@ import com.hazelcast.internal.util.collection.Long2ObjectHashMap;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.spi.impl.InternalCompletableFuture;
 import com.hazelcast.spi.impl.NodeEngineImpl;
-import jarg.rdmarpc.networking.dependencies.netbuffers.impl.OneSidedBufferManager;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -390,7 +389,7 @@ public final class RaftNodeImpl implements RaftNode {
 
     @Override
     public void handlePreVoteResponse(PreVoteResponse response) {
-        timeStampManager.createTimeStamp(PreVoteResponse.class.getSimpleName(),
+        timeStampManager. createAndStoreTimeStamp(PreVoteResponse.class.getSimpleName(),
                 response.getVoter().getUuid().toString(),
                 response.rpcId,
                 TimeStampManager.TimeStampCreatorType.RECEIVER);
@@ -404,7 +403,7 @@ public final class RaftNodeImpl implements RaftNode {
 
     @Override
     public void handleVoteResponse(VoteResponse response) {
-        timeStampManager.createTimeStamp(VoteResponse.class.getSimpleName(),
+        timeStampManager. createAndStoreTimeStamp(VoteResponse.class.getSimpleName(),
                 response.getVoter().getUuid().toString(),
                 response.rpcId,
                 TimeStampManager.TimeStampCreatorType.RECEIVER);
@@ -414,30 +413,30 @@ public final class RaftNodeImpl implements RaftNode {
     @Override
     public void handleAppendRequest(AppendRequest request) {
         // this will be run by the followers
-        if(request.rpcId > 0){
-            timeStampManager.createTimeStamp(AppendRequestHandlerTask.class.getSimpleName(),
-                    getLocalMember().getUuid().toString(),
-                    request.rpcId,
-                    TimeStampManager.TimeStampCreatorType.RECEIVER);
-        }
+//        if(request.rpcId > 0){
+//            timeStampManager. createAndStoreTimeStamp(AppendRequestHandlerTask.class.getSimpleName(),
+//                    getLocalMember().getUuid().toString(),
+//                    request.rpcId,
+//                    TimeStampManager.TimeStampCreatorType.RECEIVER);
+//        }
         execute(new AppendRequestHandlerTask(this, request));
     }
 
     @Override
     public void handleAppendResponse(AppendSuccessResponse response) {
-        if(response.rpcId > 0){
-            timeStampManager.createTimeStamp(AppendSuccessResponse.class.getSimpleName(),
-                    response.getFollower().getUuid().toString(),
-                    response.rpcId,
-                    TimeStampManager.TimeStampCreatorType.RECEIVER);
-        }
+//        if(response.rpcId > 0){
+//            timeStampManager. createAndStoreTimeStamp(AppendSuccessResponse.class.getSimpleName(),
+//                    response.getFollower().getUuid().toString(),
+//                    response.rpcId,
+//                    TimeStampManager.TimeStampCreatorType.RECEIVER);
+//        }
         execute(new AppendSuccessResponseHandlerTask(this, response));
     }
 
     @Override
     public void handleAppendResponse(AppendFailureResponse response) {
         if(response.rpcId > 0){
-            timeStampManager.createTimeStamp(AppendFailureResponse.class.getSimpleName(),
+            timeStampManager. createAndStoreTimeStamp(AppendFailureResponse.class.getSimpleName(),
                     response.getFollower().getUuid().toString(),
                     response.rpcId,
                     TimeStampManager.TimeStampCreatorType.RECEIVER);
@@ -447,7 +446,7 @@ public final class RaftNodeImpl implements RaftNode {
 
     @Override
     public void handleInstallSnapshot(InstallSnapshot request) {
-        timeStampManager.createTimeStamp(request.toString(),
+        timeStampManager. createAndStoreTimeStamp(request.toString(),
                 getLocalMember().getUuid().toString(),
                 request.rpcId,
                 TimeStampManager.TimeStampCreatorType.RECEIVER);
@@ -456,7 +455,7 @@ public final class RaftNodeImpl implements RaftNode {
 
     @Override
     public void handleTriggerLeaderElection(TriggerLeaderElection request) {
-        timeStampManager.createTimeStamp(request.toString(),
+        timeStampManager. createAndStoreTimeStamp(request.toString(),
                 getLocalMember().getUuid().toString(),
                 request.rpcId,
                 TimeStampManager.TimeStampCreatorType.RECEIVER);
@@ -656,7 +655,7 @@ public final class RaftNodeImpl implements RaftNode {
 
     public void send(PreVoteRequest request, RaftEndpoint target) {
         request.rpcId = rpcId.incrementAndGet();
-        timeStampManager.createTimeStamp(PreVoteRequest.class.getSimpleName(),
+        timeStampManager. createAndStoreTimeStamp(PreVoteRequest.class.getSimpleName(),
                 target.getUuid().toString(),
                 request.rpcId,
                 TimeStampManager.TimeStampCreatorType.SENDER);
@@ -669,7 +668,7 @@ public final class RaftNodeImpl implements RaftNode {
 
     public void send(VoteRequest request, RaftEndpoint target) {
         request.rpcId = rpcId.incrementAndGet();
-        timeStampManager.createTimeStamp(VoteRequest.class.getSimpleName(),
+        timeStampManager. createAndStoreTimeStamp(VoteRequest.class.getSimpleName(),
                 target.getUuid().toString(),
                 request.rpcId,
                 TimeStampManager.TimeStampCreatorType.SENDER);
@@ -690,7 +689,7 @@ public final class RaftNodeImpl implements RaftNode {
 
     public void send(TriggerLeaderElection request, RaftEndpoint target) {
         request.rpcId = rpcId.incrementAndGet();
-        timeStampManager.createTimeStamp(TriggerLeaderElection.class.getSimpleName(),
+        timeStampManager. createAndStoreTimeStamp(TriggerLeaderElection.class.getSimpleName(),
                 target.getUuid().toString(),
                 request.rpcId,
                 TimeStampManager.TimeStampCreatorType.SENDER);
@@ -749,7 +748,7 @@ public final class RaftNodeImpl implements RaftNode {
 
             // no need to submit the flush task here because we send committed state...
             installSnapshot.rpcId = rpcId.incrementAndGet();
-            timeStampManager.createTimeStamp(InstallSnapshot.class.getSimpleName(),
+            timeStampManager. createAndStoreTimeStamp(InstallSnapshot.class.getSimpleName(),
                     follower.getUuid().toString(),
                     installSnapshot.rpcId,
                     TimeStampManager.TimeStampCreatorType.SENDER);
@@ -811,7 +810,7 @@ public final class RaftNodeImpl implements RaftNode {
         //  Avoid timestamps for empty log entries
         if(entries.length > 0){
             request.rpcId = rpcId.incrementAndGet();
-            timeStampManager.createTimeStamp(AppendRequest.class.getSimpleName(),
+            timeStampManager. createAndStoreTimeStamp(AppendRequest.class.getSimpleName(),
                     follower.getUuid().toString(),
                     request.rpcId,
                     TimeStampManager.TimeStampCreatorType.SENDER);

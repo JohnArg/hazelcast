@@ -1,10 +1,11 @@
-package com.hazelcast.internal.server;
+package com.hazelcast.internal.server.benchmarks;
 
 import com.hazelcast.logging.ILogger;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Time;
 import java.util.*;
 
 /**
@@ -21,8 +22,12 @@ public class TimeStampManager {
     }
 
 
-    public void createTimeStamp(String operationName, String memberId, int rpcId, TimeStampCreatorType creatorType){
+    public void createAndStoreTimeStamp(String operationName, String memberId, int rpcId, TimeStampCreatorType creatorType){
         operationTimeStamps.add(new TimeStamp(operationName, memberId, rpcId, creatorType));
+    }
+
+    public void storeTimeStamp(TimeStamp timeStamp){
+        operationTimeStamps.add(timeStamp);
     }
 
     public void export(String filename){
@@ -46,12 +51,16 @@ public class TimeStampManager {
         RECEIVER
     }
 
-    private class TimeStamp{
+    public static class TimeStamp{
         String operationName;
         String memberId;
         int rpcId;
         TimeStampCreatorType creatorType;
         long time;
+
+        public TimeStamp(){
+
+        }
 
         public TimeStamp(String operationName, String memberId, int rpcId, TimeStampCreatorType creatorType){
             this.operationName = operationName;
@@ -67,6 +76,34 @@ public class TimeStampManager {
 
         public TimeStampCreatorType getCreatorType() {
             return creatorType;
+        }
+
+        public String getOperationName() {
+            return operationName;
+        }
+
+        public void setOperationName(String operationName) {
+            this.operationName = operationName;
+        }
+
+        public String getMemberId() {
+            return memberId;
+        }
+
+        public void setMemberId(String memberId) {
+            this.memberId = memberId;
+        }
+
+        public int getRpcId() {
+            return rpcId;
+        }
+
+        public void setRpcId(int rpcId) {
+            this.rpcId = rpcId;
+        }
+
+        public void setCreatorType(TimeStampCreatorType creatorType) {
+            this.creatorType = creatorType;
         }
 
         @Override
