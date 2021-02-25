@@ -65,4 +65,7 @@ public class AppendFailureResponseOp extends AsyncRaftOp {
         return RaftServiceDataSerializerHook.APPEND_FAILURE_RESPONSE_OP;
     }
 
+    public int getRpcId(){
+        return appendResponse.rpcId;
+    }
 }

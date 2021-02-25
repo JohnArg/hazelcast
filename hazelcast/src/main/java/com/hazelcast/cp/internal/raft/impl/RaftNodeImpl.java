@@ -414,34 +414,34 @@ public final class RaftNodeImpl implements RaftNode {
     @Override
     public void handleAppendRequest(AppendRequest request) {
         // this will be run by the followers
-//        if(request.rpcId > 0){
-//            timeStampManager.createRpcTimeStamp(AppendRequestHandlerTask.class.getSimpleName(),
-//                    getLocalMember().getUuid().toString(),
-//                    request.rpcId,
-//                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
-//        }
+        if(request.rpcId > 0){
+            timeStampManager.createRpcTimeStamp("PacketProcessing",
+                    "Append_Request",
+                    request.rpcId,
+                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
+        }
         execute(new AppendRequestHandlerTask(this, request));
     }
 
     @Override
     public void handleAppendResponse(AppendSuccessResponse response) {
-//        if(response.rpcId > 0){
-//            timeStampManager.createRpcTimeStamp(AppendSuccessResponse.class.getSimpleName(),
-//                    response.getFollower().getUuid().toString(),
-//                    response.rpcId,
-//                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
-//        }
+        if(response.rpcId > 0){
+            timeStampManager.createRpcTimeStamp("PacketProcessing",
+                    "Append_Response",
+                    response.rpcId,
+                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
+        }
         execute(new AppendSuccessResponseHandlerTask(this, response));
     }
 
     @Override
     public void handleAppendResponse(AppendFailureResponse response) {
-//        if(response.rpcId > 0){
-//            timeStampManager.createRpcTimeStamp(AppendFailureResponse.class.getSimpleName(),
-//                    response.getFollower().getUuid().toString(),
-//                    response.rpcId,
-//                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
-//        }
+        if(response.rpcId > 0){
+            timeStampManager.createRpcTimeStamp("PacketProcessing",
+                    "Append_Response",
+                    response.rpcId,
+                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
+        }
         execute(new AppendFailureResponseHandlerTask(this, response));
     }
 
@@ -807,16 +807,16 @@ public final class RaftNodeImpl implements RaftNode {
         }
 
         //  Avoid timestamps for empty log entries
-//        if(entries.length > 0){
-//            request.rpcId = rpcId.incrementAndGet();
+        if(entries.length > 0){
+            request.rpcId = rpcId.incrementAndGet();
 //            timeStampManager.createRpcTimeStamp(AppendRequest.class.getSimpleName(),
 //                    follower.getUuid().toString(),
 //                    request.rpcId,
 //                    RpcTimeStamp.TimeStampCreatorType.SENDER);
-//        }else{
-//            rpcId.incrementAndGet(); // increment in order to avoid reusing in subsequent requests
-//            request.rpcId = -1;
-//        }
+        }else{
+            rpcId.incrementAndGet(); // increment in order to avoid reusing in subsequent requests
+            request.rpcId = -1;
+        }
         raftIntegration.send(request, follower);
 
         if (entries.length > 0 && entries[entries.length - 1].index() > leaderState.flushedLogIndex()) {

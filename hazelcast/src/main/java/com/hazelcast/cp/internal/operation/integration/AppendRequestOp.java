@@ -62,4 +62,8 @@ public class AppendRequestOp extends AsyncRaftOp {
     public int getClassId() {
         return RaftServiceDataSerializerHook.APPEND_REQUEST_OP;
     }
+
+    public int getRpcId(){
+        return appendRequest.rpcId;
+    }
 }
