@@ -56,14 +56,14 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
                 logger.severe("Cannot retrieve socket address from communicator.", e);
                 return;
             }
-            timeStampManager.createSerializationTimeStamp("PacketDeserialization",
+            timeStampManager.createSerializationTimeStamp("PacketReadNetBufferCopy",
                     DESERIALIZATION, 0,
                     START);
             // Sent Data => Packet
             do{
                 receivedPacket = packetIOHelper.readFrom(receiveProxy.getBuffer());
             }while (receivedPacket == null);
-            timeStampManager.createSerializationTimeStamp("PacketDeserialization",
+            timeStampManager.createSerializationTimeStamp("PacketReadNetBufferCopy",
                     DESERIALIZATION, receivedPacket.totalSize(),
                     END);
             // Handle Packet =======================================
@@ -95,9 +95,9 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
                 // must free up this work request, so that it can be reused for RDMA communications
                 receiveProxy.releaseWorkRequest();
 
-                timeStampManager.createLowLevelTimeStamp("PacketDispatch", receivedPacket.totalSize(), START);
+                timeStampManager.createLowLevelTimeStamp("PacketDispatchToWorkQueue", receivedPacket.totalSize(), START);
                 connectionManager.onReceiveFromConnection(receivedPacket);
-                timeStampManager.createLowLevelTimeStamp("PacketDispatch", receivedPacket.totalSize(), END);
+                timeStampManager.createLowLevelTimeStamp("PacketDispatchToWorkQueue", receivedPacket.totalSize(), END);
             }
         }
     }

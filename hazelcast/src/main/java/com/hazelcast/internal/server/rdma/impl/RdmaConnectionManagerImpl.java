@@ -332,27 +332,27 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
         // have. This helps in associating a timestamp with the RPC.
         // Do not use when benchmarking the network latency of RPCs.
         // Use only for measuring the time between dispatching the packet and executing the operation.
-        Object obj = engine.toObject(packet);
-        try{
-            if(obj instanceof AppendRequestOp){
-                int rpcId = ((AppendRequestOp) obj).getRpcId();
-                timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
-                        rpcId,
-                        RpcTimeStamp.TimeStampCreatorType.SENDER);
-            }else if(obj instanceof AppendSuccessResponseOp){
-                int rpcId = ((AppendSuccessResponseOp) obj).getRpcId();
-                timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Response",
-                        rpcId,
-                        RpcTimeStamp.TimeStampCreatorType.SENDER);
-            }else if(obj instanceof AppendFailureResponseOp){
-                int rpcId = ((AppendFailureResponseOp) obj).getRpcId();
-                timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Response",
-                        rpcId,
-                        RpcTimeStamp.TimeStampCreatorType.SENDER);
-            }
-        }catch (ClassCastException e){
-            logger.severe("[RDMA] Cannot cast to class", e);
-        }
+//        Object obj = engine.toObject(packet);
+//        try{
+//            if(obj instanceof AppendRequestOp){
+//                int rpcId = ((AppendRequestOp) obj).getRpcId();
+//                timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
+//                        rpcId,
+//                        RpcTimeStamp.TimeStampCreatorType.SENDER);
+//            }else if(obj instanceof AppendSuccessResponseOp){
+//                int rpcId = ((AppendSuccessResponseOp) obj).getRpcId();
+//                timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Response",
+//                        rpcId,
+//                        RpcTimeStamp.TimeStampCreatorType.SENDER);
+//            }else if(obj instanceof AppendFailureResponseOp){
+//                int rpcId = ((AppendFailureResponseOp) obj).getRpcId();
+//                timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Response",
+//                        rpcId,
+//                        RpcTimeStamp.TimeStampCreatorType.SENDER);
+//            }
+//        }catch (ClassCastException e){
+//            logger.severe("[RDMA] Cannot cast to class", e);
+//        }
 
         // end of extra code ======================================================
 
