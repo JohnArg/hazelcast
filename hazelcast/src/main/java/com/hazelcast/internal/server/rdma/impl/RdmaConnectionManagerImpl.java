@@ -143,7 +143,9 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
                     rdmaConfig.getMaxBufferSize());
             discoveryAPI = discoveryClient.generateDiscoveryServiceProxy();
             if(discoveryAPI == null){
-                logger.severe("Cannot send requests to discover service.");
+                rdmaService.setState(RdmaServiceState.COMMUNICATIONS_NOT_POSSIBLE);
+                serverEndpoint.close();
+                logger.severe("Cannot reach discovery service.");
                 return false;
             }
             localServerIdentifier = new ServerIdentifier(localRdmaAddress,
@@ -201,6 +203,11 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
             } catch (InterruptedException | IOException e) {
                 // ignore - the remote side might have already disconnected from this server
             }
+        }
+        try {
+            serverEndpoint.close();
+        } catch (IOException | InterruptedException e) {
+            logger.warning("Error while closing endpoint.", e);
         }
         // reset the connection data structures (clearing them might be slower
         // than creating new objects, when having a lot of connections)

@@ -131,7 +131,11 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
             }else{
                 messageBuilder.append("}");
             }
-            logger.severe(messageBuilder.toString());
+            if(workCompletionEvent.getStatus() == IbvWC.IbvWcStatus.IBV_WC_WR_FLUSH_ERR.ordinal()){
+                logger.warning(messageBuilder.toString());
+            }else{
+                logger.severe(messageBuilder.toString());
+            }
         }
         // must free the request if the communicator is not shut down
         workRequestProxy.releaseWorkRequest();
