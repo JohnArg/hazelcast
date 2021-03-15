@@ -414,34 +414,31 @@ public final class RaftNodeImpl implements RaftNode {
     @Override
     public void handleAppendRequest(AppendRequest request) {
         // this will be run by the followers
-//        if(request.rpcId > 0){
-//            timeStampManager.createRpcTimeStamp("AppendRequest",
-//                    request.leader().getUuid().toString(),
-//                    request.rpcId,
-//                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
-//        }
+        if(request.rpcId > 0){
+            timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
+                    request.rpcId,
+                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
+        }
         execute(new AppendRequestHandlerTask(this, request));
     }
 
     @Override
     public void handleAppendResponse(AppendSuccessResponse response) {
-//        if(response.rpcId > 0){
-//            timeStampManager.createRpcTimeStamp("AppendSuccessResponse",
-//                    response.getFollower().getUuid().toString(),
-//                    response.rpcId,
-//                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
-//        }
+        if(response.rpcId > 0){
+            timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
+                    response.rpcId,
+                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
+        }
         execute(new AppendSuccessResponseHandlerTask(this, response));
     }
 
     @Override
     public void handleAppendResponse(AppendFailureResponse response) {
-//        if(response.rpcId > 0){
-//            timeStampManager.createRpcTimeStamp("AppendFailureResponse",
-//                    response.getFollower().getUuid().toString(),
-//                    response.rpcId,
-//                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
-//        }
+        if(response.rpcId > 0){
+            timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
+                    response.rpcId,
+                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
+        }
         execute(new AppendFailureResponseHandlerTask(this, response));
     }
 
