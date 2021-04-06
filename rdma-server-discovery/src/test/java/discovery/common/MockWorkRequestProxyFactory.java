@@ -1,10 +1,10 @@
 package discovery.common;
 
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.networking.dependencies.netrequests.impl.QueuedProxyProvider;
-import jarg.rdmarpc.networking.dependencies.netrequests.types.PostedRequestType;
-import jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.networking.dependencies.netrequests.impl.QueuedProxyProvider;
+import jarg.jrcm.networking.dependencies.netrequests.types.PostedRequestType;
+import jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -39,7 +39,7 @@ public class MockWorkRequestProxyFactory{
      * a Future once the response is sent to the remote side, which happens
      * in another thread. Due to testing,
      * no such sending will actually take place, but a mock representation of
-     * an {@link jarg.rdmarpc.networking.communicators.RdmaCommunicator RdmaCommunicator}
+     * an {@link jarg.jrcm.networking.communicators.RdmaCommunicator RdmaCommunicator}
      * will simply complete the Future by passing the Work Request proxy's buffer, now
      * containing the response bytes.
      * So, in summary, the {@link CompletableFuture} serves the purpose of waiting until

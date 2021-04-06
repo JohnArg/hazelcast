@@ -1,8 +1,7 @@
 package discovery.common.serializers;
 
 import discovery.common.api.ServerIdentifier;
-import discovery.common.serializers.ServerIdentifierSetSerializer;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -12,7 +11,8 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ServerIdentifierSerializerTest {
 

@@ -1,16 +1,15 @@
 package discovery.service.rpc.invocators;
 
 import discovery.common.DiscoveryPacket;
-import jarg.rdmarpc.networking.communicators.RdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
-import jarg.rdmarpc.rpc.invocation.RpcOperationInvocator;
-import jarg.rdmarpc.rpc.packets.RpcMessageType;
-import jarg.rdmarpc.rpc.serialization.AbstractDataSerializer;
-import jarg.rdmarpc.rpc.serialization.RpcDataSerializer;
+import jarg.jrcm.networking.communicators.RdmaCommunicator;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.rpc.exception.RpcDataSerializationException;
+import jarg.jrcm.rpc.invocation.RpcOperationInvocator;
+import jarg.jrcm.rpc.packets.RpcMessageType;
+import jarg.jrcm.rpc.serialization.AbstractDataSerializer;
 import org.slf4j.Logger;
 
-import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
+import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 
 public abstract class AbstractDiscoveryInvocator implements RpcOperationInvocator {

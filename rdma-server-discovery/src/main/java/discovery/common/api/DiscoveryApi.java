@@ -1,6 +1,6 @@
 package discovery.common.api;
 
-import jarg.rdmarpc.rpc.exception.RpcExecutionException;
+import jarg.jrcm.rpc.exception.RpcExecutionException;
 
 import java.util.Set;
 

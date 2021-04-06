@@ -1,6 +1,5 @@
 package discovery.common.api;
 
-import discovery.common.api.ServerIdentifier;
 import org.junit.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;

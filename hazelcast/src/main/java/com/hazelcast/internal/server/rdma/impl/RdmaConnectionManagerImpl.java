@@ -18,9 +18,9 @@ import com.ibm.disni.RdmaServerEndpoint;
 import discovery.client.DiscoveryClient;
 import discovery.client.rpc.DiscoveryServiceProxy;
 import discovery.common.api.ServerIdentifier;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.exception.RpcExecutionException;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.rpc.exception.RpcExecutionException;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
-import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
+import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 /**
  * Manages the RDMA connections on behalf of an {@link RdmaServer}.
@@ -144,7 +144,9 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
                     rdmaConfig.getMaxBufferSize());
             discoveryAPI = discoveryClient.generateDiscoveryServiceProxy();
             if(discoveryAPI == null){
-                logger.severe("Cannot send requests to discover service.");
+                rdmaService.setState(RdmaServiceState.COMMUNICATIONS_NOT_POSSIBLE);
+                serverEndpoint.close();
+                logger.severe("Cannot reach discovery service.");
                 return false;
             }
             localServerIdentifier = new ServerIdentifier(localRdmaAddress,
@@ -202,6 +204,11 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
             } catch (InterruptedException | IOException e) {
                 // ignore - the remote side might have already disconnected from this server
             }
+        }
+        try {
+            serverEndpoint.close();
+        } catch (IOException | InterruptedException e) {
+            logger.warning("Error while closing endpoint.", e);
         }
         // reset the connection data structures (clearing them might be slower
         // than creating new objects, when having a lot of connections)

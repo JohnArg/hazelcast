@@ -6,10 +6,10 @@ import com.ibm.disni.verbs.RdmaCmId;
 import discovery.client.rpc.response.PendingResponseManager;
 import discovery.client.rpc.response.ResponsePacketDispatcher;
 import discovery.common.networking.NetworkCompletionEventHandler;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.netbuffers.impl.TwoSidedBufferManager;
-import jarg.rdmarpc.networking.dependencies.netrequests.impl.QueuedProxyProvider;
-import jarg.rdmarpc.networking.dependencies.svc.impl.TwoSidedSVCManager;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.dependencies.netbuffers.impl.TwoSidedBufferManager;
+import jarg.jrcm.networking.dependencies.netrequests.impl.QueuedProxyProvider;
+import jarg.jrcm.networking.dependencies.svc.impl.TwoSidedSVCManager;
 
 import java.io.IOException;
 
