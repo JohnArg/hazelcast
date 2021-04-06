@@ -19,6 +19,7 @@ package com.hazelcast.cp.internal.raft.impl.dto;
 import com.hazelcast.cp.internal.raft.impl.RaftEndpoint;
 import com.hazelcast.cp.internal.raft.impl.RaftDataSerializerHook;
 import com.hazelcast.cp.internal.raft.impl.log.SnapshotEntry;
+import com.hazelcast.internal.server.RpcIdentifier;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
@@ -35,7 +36,7 @@ import java.io.IOException;
  * Invoked by leader to send chunks of a snapshot to a follower.
  * Leaders always send chunks in order.
  */
-public class InstallSnapshot implements IdentifiedDataSerializable {
+public class InstallSnapshot extends RpcIdentifier implements IdentifiedDataSerializable {
 
     private RaftEndpoint leader;
     private int term;
@@ -84,6 +85,8 @@ public class InstallSnapshot implements IdentifiedDataSerializable {
         out.writeInt(term);
         out.writeObject(snapshot);
         out.writeLong(queryRound);
+
+        out.writeInt(rpcId);
     }
 
     @Override
@@ -92,6 +95,8 @@ public class InstallSnapshot implements IdentifiedDataSerializable {
         term = in.readInt();
         snapshot = in.readObject();
         queryRound = in.readLong();
+
+        rpcId = in.readInt();
     }
 
     @Override

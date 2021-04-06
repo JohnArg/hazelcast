@@ -17,6 +17,7 @@
 package com.hazelcast.spi.impl;
 
 import com.hazelcast.cluster.Address;
+import com.hazelcast.cluster.Member;
 import com.hazelcast.cluster.impl.MemberImpl;
 import com.hazelcast.config.Config;
 import com.hazelcast.core.HazelcastException;
@@ -42,6 +43,7 @@ import com.hazelcast.internal.partition.InternalPartitionService;
 import com.hazelcast.internal.partition.MigrationInfo;
 import com.hazelcast.internal.serialization.Data;
 import com.hazelcast.internal.serialization.SerializationService;
+import com.hazelcast.internal.server.benchmarks.TimeStampManager;
 import com.hazelcast.internal.services.PostJoinAwareService;
 import com.hazelcast.internal.services.PreJoinAwareService;
 import com.hazelcast.internal.usercodedeployment.UserCodeDeploymentClassLoader;
@@ -123,6 +125,12 @@ public class NodeEngineImpl implements NodeEngine {
     private final SplitBrainMergePolicyProvider splitBrainMergePolicyProvider;
     private final ConcurrencyDetection concurrencyDetection;
 
+    // Latency benchmark related - Kept in this class to be accessible by others =======
+    private TimeStampManager timeStampManager;
+    // Keep the last part of the local member's TCP address here
+    private String localNodeId;
+    private String timestampFileName;
+
     @SuppressWarnings("checkstyle:executablestatementcount")
     public NodeEngineImpl(Node node) {
         this.node = node;
@@ -164,6 +172,7 @@ public class NodeEngineImpl implements NodeEngine {
             serviceManager.registerService(OperationParker.SERVICE_NAME, operationParker);
             serviceManager.registerService(UserCodeDeploymentService.SERVICE_NAME, userCodeDeploymentService);
             serviceManager.registerService(ClusterWideConfigurationService.SERVICE_NAME, configurationService);
+
         } catch (Throwable e) {
             try {
                 shutdown(true);
@@ -226,6 +235,13 @@ public class NodeEngineImpl implements NodeEngine {
 
         diagnostics.start();
         node.getNodeExtension().registerPlugins(diagnostics);
+
+        // Latency benchmark related
+        timeStampManager = new TimeStampManager(this.logger);
+        Member localMember = getLocalMember();
+        String[] addressParts = localMember.getSocketAddress().getAddress().toString().split("\\.");
+        localNodeId = addressParts[3];
+        timestampFileName = "TCP_Lat_" + localNodeId+".txt";
     }
 
     public ConcurrencyDetection getConcurrencyDetection() {
@@ -523,6 +539,9 @@ public class NodeEngineImpl implements NodeEngine {
         if (diagnostics != null) {
             diagnostics.shutdown();
         }
+
+        // export latency results
+        timeStampManager.export(timestampFileName);
     }
 
     // has to be public, it's used by Jet
@@ -541,5 +560,9 @@ public class NodeEngineImpl implements NodeEngine {
                 }
             };
         }
+    }
+
+    public TimeStampManager getTimeStampManager() {
+        return timeStampManager;
     }
 }

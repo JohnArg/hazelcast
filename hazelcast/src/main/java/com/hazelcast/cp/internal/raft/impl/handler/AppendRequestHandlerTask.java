@@ -28,6 +28,7 @@ import com.hazelcast.cp.internal.raft.impl.log.LogEntry;
 import com.hazelcast.cp.internal.raft.impl.log.RaftLog;
 import com.hazelcast.cp.internal.raft.impl.state.RaftState;
 import com.hazelcast.cp.internal.raft.impl.task.RaftNodeStatusAwareTask;
+import com.hazelcast.internal.server.benchmarks.TimeStampManager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,6 +67,9 @@ public class AppendRequestHandlerTask extends RaftNodeStatusAwareTask implements
             logger.fine("Received " + req);
         }
 
+        TimeStampManager timeStampManager = raftNode.getTimeStampManager();
+        int rpcId = req.rpcId;
+
         RaftState state = raftNode.state();
 
         // Reply false if term < currentTerm (§5.1)
@@ -74,6 +78,10 @@ public class AppendRequestHandlerTask extends RaftNodeStatusAwareTask implements
                 logger.warning("Stale " + req + " received in current term: " + state.term());
             }
 
+            if(rpcId > 0){
+                timeStampManager. createAndStoreTimeStamp(AppendRequestHandlerTask.class.getSimpleName(),
+                        localMember().getUuid().toString(), rpcId, TimeStampManager.TimeStampCreatorType.SENDER);
+            }
             raftNode.send(createFailureResponse(state.term()), req.leader());
             return;
         }
@@ -109,6 +117,10 @@ public class AppendRequestHandlerTask extends RaftNodeStatusAwareTask implements
                         logger.warning("Failed to get previous log index for " + req + ", last log index: " + lastLogIndex);
                     }
 
+                    if(rpcId > 0) {
+                        timeStampManager. createAndStoreTimeStamp(AppendRequestHandlerTask.class.getSimpleName(),
+                                localMember().getUuid().toString(), rpcId, TimeStampManager.TimeStampCreatorType.SENDER);
+                    }
                     raftNode.send(createFailureResponse(req.term()), req.leader());
                     return;
                 }
@@ -120,6 +132,10 @@ public class AppendRequestHandlerTask extends RaftNodeStatusAwareTask implements
                     logger.warning("Previous log term of " + req + " is different than ours: " + prevLogTerm);
                 }
 
+                if(rpcId > 0) {
+                    timeStampManager. createAndStoreTimeStamp(AppendRequestHandlerTask.class.getSimpleName(),
+                            localMember().getUuid().toString(), rpcId, TimeStampManager.TimeStampCreatorType.SENDER);
+                }
                 raftNode.send(createFailureResponse(req.term()), req.leader());
                 return;
             }
@@ -205,6 +221,11 @@ public class AppendRequestHandlerTask extends RaftNodeStatusAwareTask implements
 
         try {
             AppendSuccessResponse resp = new AppendSuccessResponse(localMember(), state.term(), lastLogIndex, req.queryRound());
+            resp.rpcId = req.rpcId;
+            if(rpcId > 0) {
+                timeStampManager. createAndStoreTimeStamp(AppendRequestHandlerTask.class.getSimpleName(),
+                        localMember().getUuid().toString(), rpcId, TimeStampManager.TimeStampCreatorType.SENDER);
+            }
             raftNode.send(resp, req.leader());
         } finally {
             if (state.commitIndex() > oldCommitIndex) {
@@ -261,6 +282,9 @@ public class AppendRequestHandlerTask extends RaftNodeStatusAwareTask implements
     }
 
     private AppendFailureResponse createFailureResponse(int term) {
-        return new AppendFailureResponse(localMember(), term, req.prevLogIndex() + 1);
+        AppendFailureResponse response =
+                new AppendFailureResponse(localMember(), term, req.prevLogIndex() + 1);
+        response.rpcId = req.rpcId;
+        return response;
     }
 }
