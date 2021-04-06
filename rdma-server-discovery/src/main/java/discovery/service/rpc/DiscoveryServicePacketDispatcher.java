@@ -6,9 +6,9 @@ import discovery.common.api.DiscoveryApi;
 import discovery.service.rpc.invocators.GetRegisteredServersApiInvocator;
 import discovery.service.rpc.invocators.RegisterServerApiInvocator;
 import discovery.service.rpc.invocators.UnregisterServerApiInvocator;
-import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
-import jarg.rdmarpc.rpc.invocation.RpcOperationInvocator;
-import jarg.rdmarpc.rpc.packets.PacketDispatcher;
+import jarg.jrcm.rpc.exception.RpcDataSerializationException;
+import jarg.jrcm.rpc.invocation.RpcOperationInvocator;
+import jarg.jrcm.rpc.packets.PacketDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

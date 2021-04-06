@@ -9,11 +9,11 @@ import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.ibm.disni.verbs.IbvWC;
 import discovery.common.api.ServerIdentifier;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.networking.dependencies.netrequests.types.PostedRequestType;
-import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.networking.dependencies.netrequests.types.PostedRequestType;
+import jarg.jrcm.rpc.exception.RpcDataSerializationException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -21,8 +21,8 @@ import java.net.InetSocketAddress;
 import static com.hazelcast.internal.server.benchmarks.timestamps.LowLevelTimeStamp.TimeStampCreatingPoint.END;
 import static com.hazelcast.internal.server.benchmarks.timestamps.LowLevelTimeStamp.TimeStampCreatingPoint.START;
 import static com.hazelcast.internal.server.benchmarks.timestamps.SerializationTimeStamp.SerializationType.DESERIALIZATION;
-import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_RECV;
-import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
+import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_RECV;
+import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
     private RdmaLogger logger;

@@ -1,7 +1,6 @@
 package discovery.common;
 
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.packets.RpcMessageType;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;

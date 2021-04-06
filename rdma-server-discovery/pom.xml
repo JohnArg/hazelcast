@@ -20,7 +20,7 @@
     <dependencies>
         <dependency>
             <groupId>jarg.rdma</groupId>
-            <artifactId>rdma_rpc</artifactId>
+            <artifactId>jrcm</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

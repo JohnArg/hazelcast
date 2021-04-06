@@ -5,14 +5,12 @@ import com.hazelcast.cluster.Member;
 import com.hazelcast.cp.internal.operation.integration.AppendFailureResponseOp;
 import com.hazelcast.cp.internal.operation.integration.AppendRequestOp;
 import com.hazelcast.cp.internal.operation.integration.AppendSuccessResponseOp;
-import com.hazelcast.cp.internal.raft.impl.dto.AppendFailureResponse;
 import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.networking.rdma.RdmaService;
 import com.hazelcast.internal.networking.rdma.RdmaServiceState;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.nio.PacketIOHelper;
-import com.hazelcast.internal.server.RpcIdentifier;
 import com.hazelcast.internal.server.benchmarks.timestamps.RpcTimeStamp;
 import com.hazelcast.internal.server.benchmarks.timestamps.TimeStampManager;
 import com.hazelcast.internal.server.rdma.RdmaConnectionManager;
@@ -25,9 +23,9 @@ import com.ibm.disni.RdmaServerEndpoint;
 import discovery.client.DiscoveryClient;
 import discovery.client.rpc.DiscoveryServiceProxy;
 import discovery.common.api.ServerIdentifier;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.exception.RpcExecutionException;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.rpc.exception.RpcExecutionException;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -41,7 +39,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
-import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
+import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 /**
  * Manages the RDMA connections on behalf of an {@link RdmaServer}.

@@ -4,16 +4,16 @@ import discovery.common.DiscoveryPacket;
 import discovery.common.api.DiscoveryApi;
 import discovery.common.api.ServerIdentifier;
 import discovery.common.serializers.BooleanSerializer;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
-import jarg.rdmarpc.rpc.exception.RpcExecutionException;
-import jarg.rdmarpc.rpc.invocation.AbstractThreadPoolInvocator;
-import jarg.rdmarpc.rpc.packets.AbstractRpcPacket;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.rpc.exception.RpcDataSerializationException;
+import jarg.jrcm.rpc.exception.RpcExecutionException;
+import jarg.jrcm.rpc.invocation.AbstractThreadPoolInvocator;
+import jarg.jrcm.rpc.packets.AbstractRpcPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.concurrent.ExecutorService;
 
-import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
+import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 /**
  * Reads information from an {@link DiscoveryPacket}, deserializes parameters and invokes

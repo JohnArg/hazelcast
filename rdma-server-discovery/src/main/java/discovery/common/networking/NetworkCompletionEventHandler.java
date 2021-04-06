@@ -1,16 +1,13 @@
 package discovery.common.networking;
 
-import com.ibm.disni.RdmaActiveEndpoint;
 import com.ibm.disni.verbs.IbvWC;
 import discovery.common.DiscoveryPacket;
-import jarg.rdmarpc.networking.communicators.RdmaCommunicator;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxyProvider;
-import jarg.rdmarpc.networking.dependencies.netrequests.types.PostedRequestType;
-import jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType;
-import jarg.rdmarpc.rpc.packets.PacketDispatcher;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.networking.dependencies.netrequests.types.PostedRequestType;
+import jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType;
+import jarg.jrcm.rpc.packets.PacketDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

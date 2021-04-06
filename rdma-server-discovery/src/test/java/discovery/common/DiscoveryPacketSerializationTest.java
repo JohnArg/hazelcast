@@ -2,8 +2,8 @@ package discovery.common;
 
 import discovery.common.DiscoveryOperationType;
 import discovery.common.DiscoveryPacket;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.packets.RpcMessageType;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.rpc.packets.RpcMessageType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

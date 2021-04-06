@@ -1,7 +1,7 @@
 package discovery.client.networking;
 
 import com.ibm.disni.RdmaActiveEndpointGroup;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 /**
- * Creates an {@link jarg.rdmarpc.networking.communicators.RdmaCommunicator RdmaCommunicator} and connects
- * it to a remote service. The {@link jarg.rdmarpc.networking.communicators.RdmaCommunicator RdmaCommunicator}
+ * Creates an {@link jarg.jrcm.networking.communicators.RdmaCommunicator RdmaCommunicator} and connects
+ * it to a remote service. The {@link jarg.jrcm.networking.communicators.RdmaCommunicator RdmaCommunicator}
  * can then be used to exchange data with the service.
  */
 public class ServiceConnectionComponent {
