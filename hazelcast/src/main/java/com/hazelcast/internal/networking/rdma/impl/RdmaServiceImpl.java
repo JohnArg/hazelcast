@@ -105,9 +105,9 @@ public class RdmaServiceImpl implements RdmaService, RaftManagedService, Members
         // terminate the server
         if(rdmaServer != null){
             rdmaServer.shutdown();
-        }else{
-            init(engine,null);
         }
+
+        init(engine,null);
         // the state of the service will be changed once
         // RDMA connections are established by the connection
         // manager. That's why it's not done here.

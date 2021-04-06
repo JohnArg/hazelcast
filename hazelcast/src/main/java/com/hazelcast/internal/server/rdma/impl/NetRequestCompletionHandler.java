@@ -14,10 +14,8 @@ import jarg.jrcm.networking.dependencies.netrequests.AbstractWorkCompletionHandl
 import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
 import jarg.jrcm.networking.dependencies.netrequests.types.PostedRequestType;
 import jarg.jrcm.rpc.exception.RpcDataSerializationException;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
-
 import static com.hazelcast.internal.server.benchmarks.timestamps.LowLevelTimeStamp.TimeStampCreatingPoint.END;
 import static com.hazelcast.internal.server.benchmarks.timestamps.LowLevelTimeStamp.TimeStampCreatingPoint.START;
 import static com.hazelcast.internal.server.benchmarks.timestamps.SerializationTimeStamp.SerializationType.DESERIALIZATION;
@@ -138,7 +136,11 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
             }else{
                 messageBuilder.append("}");
             }
-            logger.severe(messageBuilder.toString());
+            if(workCompletionEvent.getStatus() == IbvWC.IbvWcStatus.IBV_WC_WR_FLUSH_ERR.ordinal()){
+                logger.warning(messageBuilder.toString());
+            }else{
+                logger.severe(messageBuilder.toString());
+            }
         }
         // must free the request if the communicator is not shut down
         workRequestProxy.releaseWorkRequest();

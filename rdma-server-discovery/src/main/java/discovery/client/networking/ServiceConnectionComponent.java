@@ -19,7 +19,7 @@ public class ServiceConnectionComponent {
     RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup;
     private ActiveRdmaCommunicator rdmaCommunicator;
     private InetSocketAddress serviceAddress;
-    // Rdma endpoint properties
+    // jrcm endpoint properties
     private int timeout;
     private Boolean initialized;
 
@@ -28,7 +28,7 @@ public class ServiceConnectionComponent {
                                       int cqSize, int timeout, boolean polling, int maxSge, int maxNetworkBufferSize) {
         this.serviceAddress = serviceAddress;
         this.timeout = timeout;
-        // An endpoint group is needed to create RDMA endpoints
+        // An endpoint group is needed to create jrcm endpoints
         try {
             endpointGroup = new RdmaActiveEndpointGroup<>(timeout, polling, maxWorkRequests, maxSge, cqSize);
             // The group requires an endpoint factory to create the endpoints

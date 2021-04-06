@@ -7,7 +7,6 @@ import jarg.jrcm.rpc.exception.RpcDataSerializationException;
 import jarg.jrcm.rpc.invocation.RpcOperationInvocator;
 import jarg.jrcm.rpc.packets.RpcMessageType;
 import jarg.jrcm.rpc.serialization.AbstractDataSerializer;
-import jarg.jrcm.rpc.serialization.RpcDataSerializer;
 import org.slf4j.Logger;
 
 import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;

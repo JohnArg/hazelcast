@@ -1,7 +1,5 @@
 package discovery.common;
 
-import discovery.common.DiscoveryOperationType;
-import discovery.common.DiscoveryPacket;
 import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
 import jarg.jrcm.rpc.packets.RpcMessageType;
 import org.junit.jupiter.api.DisplayName;

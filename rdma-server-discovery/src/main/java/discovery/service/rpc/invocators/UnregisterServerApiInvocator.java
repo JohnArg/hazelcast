@@ -7,13 +7,9 @@ import discovery.common.serializers.BooleanSerializer;
 import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
 import jarg.jrcm.rpc.exception.RpcDataSerializationException;
 import jarg.jrcm.rpc.exception.RpcExecutionException;
-import jarg.jrcm.rpc.invocation.AbstractThreadPoolInvocator;
 import jarg.jrcm.rpc.packets.AbstractRpcPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.concurrent.ExecutorService;
-
-import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 /**
  * Reads information from an {@link DiscoveryPacket}, deserializes parameters and invokes

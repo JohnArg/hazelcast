@@ -13,7 +13,6 @@ import jarg.jrcm.networking.dependencies.netrequests.impl.QueuedProxyProvider;
 import jarg.jrcm.networking.dependencies.svc.impl.TwoSidedSVCManager;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 
 public class ServiceCommunicatorFactory implements RdmaEndpointFactory<ActiveRdmaCommunicator> {
 
