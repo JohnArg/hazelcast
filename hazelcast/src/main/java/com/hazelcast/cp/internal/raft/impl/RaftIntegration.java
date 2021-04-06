@@ -248,5 +248,7 @@ public interface RaftIntegration {
     void onGroupDestroyed(CPGroupId groupId);
 
 
-    NodeEngineImpl getNodeEngine();
+    default NodeEngineImpl getNodeEngine(){
+        return null;
+    }
 }

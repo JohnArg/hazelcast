@@ -25,38 +25,22 @@ import com.hazelcast.cp.internal.raft.impl.RaftIntegration;
 import com.hazelcast.cp.internal.raft.impl.RaftNodeImpl;
 import com.hazelcast.cp.internal.raft.impl.RaftNodeStatus;
 import com.hazelcast.cp.internal.raft.impl.dataservice.RestoreSnapshotRaftRunnable;
-import com.hazelcast.cp.internal.raft.impl.dto.AppendFailureResponse;
-import com.hazelcast.cp.internal.raft.impl.dto.AppendRequest;
-import com.hazelcast.cp.internal.raft.impl.dto.AppendSuccessResponse;
-import com.hazelcast.cp.internal.raft.impl.dto.InstallSnapshot;
-import com.hazelcast.cp.internal.raft.impl.dto.PreVoteRequest;
-import com.hazelcast.cp.internal.raft.impl.dto.PreVoteResponse;
-import com.hazelcast.cp.internal.raft.impl.dto.TriggerLeaderElection;
-import com.hazelcast.cp.internal.raft.impl.dto.VoteRequest;
-import com.hazelcast.cp.internal.raft.impl.dto.VoteResponse;
+import com.hazelcast.cp.internal.raft.impl.dto.*;
 import com.hazelcast.instance.BuildInfoProvider;
 import com.hazelcast.internal.cluster.Versions;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.impl.LoggingServiceImpl;
 import com.hazelcast.spi.impl.InternalCompletableFuture;
-import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.version.MemberVersion;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Function;
 
 import static com.hazelcast.cp.internal.raft.impl.RaftUtil.newAddress;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
@@ -431,10 +415,5 @@ public class LocalRaftIntegration implements RaftIntegration {
 
     @Override
     public void onGroupDestroyed(CPGroupId groupId) {
-    }
-
-    @Override
-    public NodeEngineImpl getNodeEngine() {
-        return null;
     }
 }
