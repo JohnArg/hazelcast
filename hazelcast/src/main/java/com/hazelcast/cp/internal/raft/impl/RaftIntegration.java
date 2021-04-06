@@ -18,18 +18,11 @@ package com.hazelcast.cp.internal.raft.impl;
 
 import com.hazelcast.cp.CPGroupId;
 import com.hazelcast.cp.CPMember;
-import com.hazelcast.cp.internal.raft.impl.dto.AppendFailureResponse;
-import com.hazelcast.cp.internal.raft.impl.dto.AppendRequest;
-import com.hazelcast.cp.internal.raft.impl.dto.AppendSuccessResponse;
-import com.hazelcast.cp.internal.raft.impl.dto.InstallSnapshot;
-import com.hazelcast.cp.internal.raft.impl.dto.PreVoteRequest;
-import com.hazelcast.cp.internal.raft.impl.dto.PreVoteResponse;
-import com.hazelcast.cp.internal.raft.impl.dto.TriggerLeaderElection;
-import com.hazelcast.cp.internal.raft.impl.dto.VoteRequest;
-import com.hazelcast.cp.internal.raft.impl.dto.VoteResponse;
+import com.hazelcast.cp.internal.raft.impl.dto.*;
 import com.hazelcast.cp.internal.raft.impl.log.SnapshotEntry;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.spi.impl.InternalCompletableFuture;
+import com.hazelcast.spi.impl.NodeEngineImpl;
 
 import java.util.concurrent.TimeUnit;
 
@@ -253,4 +246,7 @@ public interface RaftIntegration {
      * @param groupId id of CP group
      */
     void onGroupDestroyed(CPGroupId groupId);
+
+
+    NodeEngineImpl getNodeEngine();
 }

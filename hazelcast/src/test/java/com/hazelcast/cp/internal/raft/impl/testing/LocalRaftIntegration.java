@@ -39,6 +39,7 @@ import com.hazelcast.internal.cluster.Versions;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.impl.LoggingServiceImpl;
 import com.hazelcast.spi.impl.InternalCompletableFuture;
+import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.version.MemberVersion;
 
 import java.util.Collections;
@@ -430,5 +431,10 @@ public class LocalRaftIntegration implements RaftIntegration {
 
     @Override
     public void onGroupDestroyed(CPGroupId groupId) {
+    }
+
+    @Override
+    public NodeEngineImpl getNodeEngine() {
+        return null;
     }
 }

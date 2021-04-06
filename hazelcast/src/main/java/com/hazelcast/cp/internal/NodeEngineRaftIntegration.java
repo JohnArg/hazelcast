@@ -301,4 +301,9 @@ final class NodeEngineRaftIntegration implements RaftIntegration {
             service.onRaftNodeTerminated(groupId);
         }
     }
+
+    @Override
+    public NodeEngineImpl getNodeEngine() {
+        return nodeEngine;
+    }
 }
