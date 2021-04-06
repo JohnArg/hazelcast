@@ -2,9 +2,6 @@ package discovery.client.networking;
 
 import discovery.client.rpc.response.PendingResponseManager;
 import discovery.common.DiscoveryCommunicatorDependencies;
-import discovery.common.DiscoveryPacket;
-import jarg.rdmarpc.networking.dependencies.RdmaCommunicatorDependencies;
-import jarg.rdmarpc.rpc.packets.PacketDispatcher;
 
 public class ClientCommunicatorDependencies extends DiscoveryCommunicatorDependencies {
 

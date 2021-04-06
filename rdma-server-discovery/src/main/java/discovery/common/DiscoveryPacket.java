@@ -1,9 +1,9 @@
 package discovery.common;
 
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
-import jarg.rdmarpc.rpc.packets.AbstractRpcPacket;
-import jarg.rdmarpc.rpc.serialization.RpcDataSerializer;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.rpc.exception.RpcDataSerializationException;
+import jarg.jrcm.rpc.packets.AbstractRpcPacket;
+import jarg.jrcm.rpc.serialization.RpcDataSerializer;
 
 import java.nio.ByteBuffer;
 

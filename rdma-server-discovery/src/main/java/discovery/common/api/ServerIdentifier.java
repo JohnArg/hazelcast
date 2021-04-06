@@ -1,7 +1,7 @@
 package discovery.common.api;
 
-import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
-import jarg.rdmarpc.rpc.serialization.AbstractDataSerializer;
+import jarg.jrcm.rpc.exception.RpcDataSerializationException;
+import jarg.jrcm.rpc.serialization.AbstractDataSerializer;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -9,7 +9,6 @@ import java.net.UnknownHostException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.ReadOnlyBufferException;
 import java.util.Objects;
 
 /**

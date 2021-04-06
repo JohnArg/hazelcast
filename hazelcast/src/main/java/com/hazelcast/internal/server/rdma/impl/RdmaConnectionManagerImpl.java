@@ -17,9 +17,9 @@ import com.ibm.disni.RdmaServerEndpoint;
 import discovery.client.DiscoveryClient;
 import discovery.client.rpc.DiscoveryServiceProxy;
 import discovery.common.api.ServerIdentifier;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.exception.RpcExecutionException;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.rpc.exception.RpcExecutionException;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
-import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
+import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 /**
  * Manages the RDMA connections on behalf of an {@link RdmaServer}.

@@ -1,6 +1,6 @@
 package discovery.client.rpc.request;
 
-import jarg.rdmarpc.rpc.request.RequestIdGenerator;
+import jarg.jrcm.rpc.request.RequestIdGenerator;
 
 /**
  * Very simple id generator that uses a long counter.

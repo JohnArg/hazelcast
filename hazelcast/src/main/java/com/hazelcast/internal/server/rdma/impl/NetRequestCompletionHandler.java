@@ -5,23 +5,20 @@ import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.nio.PacketIOHelper;
 import com.hazelcast.internal.server.rdma.RdmaServerConnection;
 import com.hazelcast.spi.impl.NodeEngine;
-import com.ibm.disni.RdmaActiveEndpoint;
 import com.ibm.disni.verbs.IbvWC;
 import discovery.common.api.ServerIdentifier;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxyProvider;
-import jarg.rdmarpc.networking.dependencies.netrequests.types.PostedRequestType;
-import jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType;
-import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.dependencies.netrequests.AbstractWorkCompletionHandler;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.networking.dependencies.netrequests.types.PostedRequestType;
+import jarg.jrcm.rpc.exception.RpcDataSerializationException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.function.Consumer;
 
-import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_RECV;
-import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
+import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_RECV;
+import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
     private NodeEngine nodeEngine;

@@ -4,12 +4,12 @@ import discovery.client.rpc.response.PendingResponseManager;
 import discovery.common.DiscoveryPacket;
 import discovery.common.api.ServerIdentifier;
 import discovery.common.serializers.ServerIdentifierSetSerializer;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
-import jarg.rdmarpc.rpc.exception.RpcExecutionException;
-import jarg.rdmarpc.rpc.invocation.RpcOperationInvocator;
-import jarg.rdmarpc.rpc.packets.AbstractRpcPacket;
-import jarg.rdmarpc.rpc.packets.RpcMessageType;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.rpc.exception.RpcDataSerializationException;
+import jarg.jrcm.rpc.exception.RpcExecutionException;
+import jarg.jrcm.rpc.invocation.RpcOperationInvocator;
+import jarg.jrcm.rpc.packets.AbstractRpcPacket;
+import jarg.jrcm.rpc.packets.RpcMessageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
