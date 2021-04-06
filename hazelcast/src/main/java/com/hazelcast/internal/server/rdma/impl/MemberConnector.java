@@ -10,9 +10,9 @@ import com.hazelcast.internal.server.rdma.RdmaServerConnection;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.ibm.disni.RdmaActiveEndpointGroup;
 import discovery.common.api.ServerIdentifier;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.rpc.exception.RpcDataSerializationException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentMap;
 
-import static jarg.rdmarpc.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
+import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
 /**
  * Connects to remote RDMA endpoints.

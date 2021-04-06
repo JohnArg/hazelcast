@@ -1,12 +1,10 @@
 package discovery.client.rpc.response.invocators;
 
 import discovery.client.rpc.response.PendingResponseManager;
-import discovery.common.DiscoveryOperationType;
 import discovery.common.DiscoveryPacket;
 import discovery.common.MockPacketFactory;
 import discovery.common.api.ServerIdentifier;
 import discovery.common.serializers.ServerIdentifierSetSerializer;
-import jarg.rdmarpc.rpc.packets.RpcMessageType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

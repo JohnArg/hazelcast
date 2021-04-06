@@ -1,7 +1,7 @@
 package discovery.client.networking;
 
 import com.ibm.disni.RdmaActiveEndpointGroup;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 /**
- * Creates an {@link jarg.rdmarpc.networking.communicators.RdmaCommunicator RdmaCommunicator} and connects
- * it to a remote service. The {@link jarg.rdmarpc.networking.communicators.RdmaCommunicator RdmaCommunicator}
+ * Creates an {@link jarg.jrcm.networking.communicators.RdmaCommunicator RdmaCommunicator} and connects
+ * it to a remote service. The {@link jarg.jrcm.networking.communicators.RdmaCommunicator RdmaCommunicator}
  * can then be used to exchange data with the service.
  */
 public class ServiceConnectionComponent {
@@ -19,7 +19,7 @@ public class ServiceConnectionComponent {
     RdmaActiveEndpointGroup<ActiveRdmaCommunicator> endpointGroup;
     private ActiveRdmaCommunicator rdmaCommunicator;
     private InetSocketAddress serviceAddress;
-    // Rdma endpoint properties
+    // jrcm endpoint properties
     private int timeout;
     private Boolean initialized;
 
@@ -28,7 +28,7 @@ public class ServiceConnectionComponent {
                                       int cqSize, int timeout, boolean polling, int maxSge, int maxNetworkBufferSize) {
         this.serviceAddress = serviceAddress;
         this.timeout = timeout;
-        // An endpoint group is needed to create RDMA endpoints
+        // An endpoint group is needed to create jrcm endpoints
         try {
             endpointGroup = new RdmaActiveEndpointGroup<>(timeout, polling, maxWorkRequests, maxSge, cqSize);
             // The group requires an endpoint factory to create the endpoints

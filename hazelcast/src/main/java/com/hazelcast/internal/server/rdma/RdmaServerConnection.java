@@ -9,7 +9,7 @@ import com.hazelcast.internal.server.ServerConnection;
 import com.hazelcast.internal.server.ServerConnectionManager;
 import com.hazelcast.spi.impl.NodeEngine;
 import discovery.common.api.ServerIdentifier;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
 
 import java.io.IOException;
 import java.net.InetAddress;

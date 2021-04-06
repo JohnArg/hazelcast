@@ -2,8 +2,6 @@ package com.hazelcast.internal.networking.rdma.impl;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.cluster.Member;
-import com.hazelcast.cp.CPGroupId;
-import com.hazelcast.cp.internal.RaftNodeLifecycleAwareService;
 import com.hazelcast.cp.internal.RaftService;
 import com.hazelcast.cp.internal.datastructures.spi.RaftManagedService;
 import com.hazelcast.internal.networking.rdma.RdmaConfig;
@@ -18,7 +16,7 @@ import com.hazelcast.internal.services.MembershipServiceEvent;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.spi.impl.operationservice.Operation;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
 
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
@@ -107,9 +105,9 @@ public class RdmaServiceImpl implements RdmaService, RaftManagedService, Members
         // terminate the server
         if(rdmaServer != null){
             rdmaServer.shutdown();
-        }else{
-            init(engine,null);
         }
+
+        init(engine,null);
         // the state of the service will be changed once
         // RDMA connections are established by the connection
         // manager. That's why it's not done here.

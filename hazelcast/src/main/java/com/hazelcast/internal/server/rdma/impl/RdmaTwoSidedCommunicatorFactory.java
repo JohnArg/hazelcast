@@ -5,12 +5,11 @@ import com.hazelcast.spi.impl.NodeEngine;
 import com.ibm.disni.RdmaActiveEndpointGroup;
 import com.ibm.disni.RdmaEndpointFactory;
 import com.ibm.disni.verbs.RdmaCmId;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.networking.dependencies.RdmaCommunicatorDependencies;
-import jarg.rdmarpc.networking.dependencies.netbuffers.impl.TwoSidedBufferManager;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxyProvider;
-import jarg.rdmarpc.networking.dependencies.netrequests.impl.QueuedProxyProvider;
-import jarg.rdmarpc.networking.dependencies.svc.impl.TwoSidedSVCManager;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
+import jarg.jrcm.networking.dependencies.RdmaCommunicatorDependencies;
+import jarg.jrcm.networking.dependencies.netbuffers.impl.TwoSidedBufferManager;
+import jarg.jrcm.networking.dependencies.netrequests.impl.QueuedProxyProvider;
+import jarg.jrcm.networking.dependencies.svc.impl.TwoSidedSVCManager;
 
 import java.io.IOException;
 

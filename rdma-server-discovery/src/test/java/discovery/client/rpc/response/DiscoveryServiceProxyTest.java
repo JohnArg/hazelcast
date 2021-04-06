@@ -6,8 +6,8 @@ import discovery.common.DiscoveryPacket;
 import discovery.common.MockPacketFactory;
 import discovery.common.api.ServerIdentifier;
 import discovery.service.api.DiscoveryApiImpl;
-import jarg.rdmarpc.networking.communicators.RdmaCommunicator;
-import jarg.rdmarpc.rpc.exception.RpcExecutionException;
+import jarg.jrcm.networking.communicators.RdmaCommunicator;
+import jarg.jrcm.rpc.exception.RpcExecutionException;
 import org.junit.jupiter.api.*;
 
 import java.net.InetSocketAddress;

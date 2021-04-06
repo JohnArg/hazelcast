@@ -2,8 +2,7 @@ package discovery.service.api;
 
 import discovery.common.api.DiscoveryApi;
 import discovery.common.api.ServerIdentifier;
-import discovery.service.DiscoveryServiceStarter;
-import jarg.rdmarpc.rpc.exception.RpcExecutionException;
+import jarg.jrcm.rpc.exception.RpcExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
