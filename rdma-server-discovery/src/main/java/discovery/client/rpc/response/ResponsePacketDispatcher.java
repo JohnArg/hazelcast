@@ -5,9 +5,8 @@ import discovery.client.rpc.response.invocators.RegisterServerResponseInvocator;
 import discovery.client.rpc.response.invocators.UnregisterServerResponseInvocator;
 import discovery.common.DiscoveryOperationType;
 import discovery.common.DiscoveryPacket;
-import jarg.rdmarpc.rpc.exception.RpcDataSerializationException;
-import jarg.rdmarpc.rpc.packets.PacketDispatcher;
-import jarg.rdmarpc.rpc.packets.RpcMessageType;
+import jarg.jrcm.rpc.exception.RpcDataSerializationException;
+import jarg.jrcm.rpc.packets.PacketDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

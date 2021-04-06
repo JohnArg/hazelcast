@@ -1,8 +1,9 @@
 package discovery.common.serializers;
 
-import discovery.common.serializers.BooleanSerializer;
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import org.junit.jupiter.api.*;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 

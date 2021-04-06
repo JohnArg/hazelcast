@@ -1,8 +1,8 @@
 package discovery.common;
 
-import jarg.rdmarpc.networking.dependencies.netrequests.WorkRequestProxy;
-import jarg.rdmarpc.rpc.packets.RpcPacketFactory;
-import jarg.rdmarpc.rpc.request.RequestIdGenerator;
+import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
+import jarg.jrcm.rpc.packets.RpcPacketFactory;
+import jarg.jrcm.rpc.request.RequestIdGenerator;
 
 /**
  * A factory for server discovery RPC packets.

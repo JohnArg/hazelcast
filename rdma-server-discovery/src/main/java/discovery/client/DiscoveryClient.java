@@ -5,8 +5,7 @@ import discovery.client.networking.ServiceConnectionComponent;
 import discovery.client.rpc.DiscoveryServiceProxy;
 import discovery.client.rpc.request.DiscoveryRequestIdGenerator;
 import discovery.client.rpc.response.PendingResponseManager;
-import jarg.rdmarpc.networking.communicators.impl.ActiveRdmaCommunicator;
-import jarg.rdmarpc.rpc.request.RequestIdGenerator;
+import jarg.jrcm.networking.communicators.impl.ActiveRdmaCommunicator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
