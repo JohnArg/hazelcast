@@ -78,9 +78,14 @@ public class ServiceConnectionComponent {
     public void shutdown(){
         try {
             rdmaCommunicator.close();
-            endpointGroup.close();
         } catch (IOException | InterruptedException e) {
-           logger.error("Cannot close endpoint.", e);
+           logger.error("Error while closing endpoint.", e);
+        }
+
+        try{
+            endpointGroup.close();
+        } catch (InterruptedException | IOException e) {
+            logger.warn("Error while closing endpoint group.");
         }
     }
 

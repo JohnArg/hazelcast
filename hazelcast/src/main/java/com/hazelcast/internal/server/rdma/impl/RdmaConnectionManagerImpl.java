@@ -205,7 +205,7 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
             } catch (RpcExecutionException e) {
                 logger.severe("Could not unregister server from discovery service.", e);
             }
-            discoveryClient.disconnect();
+            discoveryClient.shutDown();
         }
         for(Map.Entry<InetSocketAddress, RdmaServerConnection> connection : rdmaAddressConnectionMap.entrySet()){
             try{
@@ -219,6 +219,12 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
             serverEndpoint.close();
         } catch (IOException | InterruptedException e) {
             logger.warning("Error while closing endpoint.", e);
+        }
+
+        try{
+            endpointGroup.close();
+        } catch (IOException | InterruptedException e) {
+            logger.warning("Error while closing endpoint group.", e);
         }
         // reset the connection data structures (clearing them might be slower
         // than creating new objects, when having a lot of connections)
