@@ -213,7 +213,7 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
         try{
             endpointGroup.close();
         } catch (IOException | InterruptedException e) {
-            logger.warning("Error while closing group.", e);
+            logger.warning("Error while closing endpoint group.", e);
         }
         // reset the connection data structures (clearing them might be slower
         // than creating new objects, when having a lot of connections)
