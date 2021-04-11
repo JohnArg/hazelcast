@@ -362,6 +362,7 @@
             <groupId>com.hazelcast</groupId>
             <artifactId>rdma-server-discovery</artifactId>
             <version>4.1-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
         <!-- needed for thread affinity -->
         <dependency>
