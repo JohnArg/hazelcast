@@ -808,8 +808,7 @@ public final class RaftNodeImpl implements RaftNode {
             request.rpcId = rpcId.incrementAndGet();
 //            timeStampManager.createRpcTimeStamp(AppendRequest.class.getSimpleName(),
 //                    follower.getUuid().toString(),
-//                    request.rpcId,
-//                    RpcTimeStamp.TimeStampCreatorType.SENDER);
+//                    request.rpcId,//                    RpcTimeStamp.TimeStampCreatorType.SENDER);
         }else{
             rpcId.incrementAndGet(); // increment in order to avoid reusing in subsequent requests
             request.rpcId = -1;

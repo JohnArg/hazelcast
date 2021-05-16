@@ -6,7 +6,6 @@ import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.serialization.InternalSerializationService;
-import com.hazelcast.internal.server.benchmarks.timestamps.LowLevelTimeStamp;
 import com.hazelcast.internal.server.benchmarks.timestamps.TimeStampManager;
 import com.hazelcast.internal.server.rdma.RdmaConnectionManager;
 import com.hazelcast.internal.server.rdma.RdmaServer;
@@ -21,7 +20,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import static com.hazelcast.internal.nio.Packet.FLAG_URGENT;
-import static com.hazelcast.internal.server.benchmarks.timestamps.SerializationTimeStamp.SerializationType.SERIALIZATION;
 import static com.hazelcast.internal.util.Preconditions.checkNotNull;
 
 /**
@@ -100,19 +98,19 @@ public class RdmaServerImpl implements RdmaServer<ActiveRdmaCommunicator> {
 
         Packet packetToSend = toPacket(op);
 
-        timeStampManager.createLowLevelTimeStamp("Transmit", packetToSend.totalSize(),
-                LowLevelTimeStamp.TimeStampCreatingPoint.START);
+//        timeStampManager.createLowLevelTimeStamp("Transmit", packetToSend.totalSize(),
+//                LowLevelTimeStamp.TimeStampCreatingPoint.START);
         boolean success = connectionManager.transmit(packetToSend, target, streamId);
-        timeStampManager.createLowLevelTimeStamp("Transmit", packetToSend.totalSize(),
-                LowLevelTimeStamp.TimeStampCreatingPoint.END);
+//        timeStampManager.createLowLevelTimeStamp("Transmit", packetToSend.totalSize(),
+//                LowLevelTimeStamp.TimeStampCreatingPoint.END);
         return success;
     }
 
     // Todo - serialization copy optimization
     private Packet toPacket(Operation op) {
-        timeStampManager.createSerializationTimeStamp("PacketSerialization",
-                SERIALIZATION, 0,
-                LowLevelTimeStamp.TimeStampCreatingPoint.START);
+//        timeStampManager.createSerializationTimeStamp("PacketSerialization",
+//                SERIALIZATION, 0,
+//                LowLevelTimeStamp.TimeStampCreatingPoint.START);
         byte[] bytes = serializationService.toBytes(op);
         int partitionId = op.getPartitionId();
         Packet packet = new Packet(bytes, partitionId).setPacketType(Packet.Type.OPERATION);
@@ -120,9 +118,9 @@ public class RdmaServerImpl implements RdmaServer<ActiveRdmaCommunicator> {
         if (op.isUrgent()) {
             packet.raiseFlags(FLAG_URGENT);
         }
-        timeStampManager.createSerializationTimeStamp("PacketSerialization",
-                SERIALIZATION, bytes.length,
-                LowLevelTimeStamp.TimeStampCreatingPoint.END);
+//        timeStampManager.createSerializationTimeStamp("PacketSerialization",
+//                SERIALIZATION, bytes.length,
+//                LowLevelTimeStamp.TimeStampCreatingPoint.END);
         return packet;
     }
 }

@@ -14,11 +14,10 @@ import jarg.jrcm.networking.dependencies.netrequests.AbstractWorkCompletionHandl
 import jarg.jrcm.networking.dependencies.netrequests.WorkRequestProxy;
 import jarg.jrcm.networking.dependencies.netrequests.types.PostedRequestType;
 import jarg.jrcm.rpc.exception.RpcDataSerializationException;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import static com.hazelcast.internal.server.benchmarks.timestamps.LowLevelTimeStamp.TimeStampCreatingPoint.END;
-import static com.hazelcast.internal.server.benchmarks.timestamps.LowLevelTimeStamp.TimeStampCreatingPoint.START;
-import static com.hazelcast.internal.server.benchmarks.timestamps.SerializationTimeStamp.SerializationType.DESERIALIZATION;
+
 import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_RECV;
 import static jarg.jrcm.networking.dependencies.netrequests.types.WorkRequestType.TWO_SIDED_SEND_SIGNALED;
 
@@ -54,16 +53,16 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
                 logger.severe("Cannot retrieve socket address from communicator.", e);
                 return;
             }
-            timeStampManager.createSerializationTimeStamp("PacketReadNetBufferCopy",
-                    DESERIALIZATION, 0,
-                    START);
+//            timeStampManager.createSerializationTimeStamp("PacketReadNetBufferCopy",
+//                    DESERIALIZATION, 0,
+//                    START);
             // Sent Data => Packet
             do{
                 receivedPacket = packetIOHelper.readFrom(receiveProxy.getBuffer());
             }while (receivedPacket == null);
-            timeStampManager.createSerializationTimeStamp("PacketReadNetBufferCopy",
-                    DESERIALIZATION, receivedPacket.totalSize(),
-                    END);
+//            timeStampManager.createSerializationTimeStamp("PacketReadNetBufferCopy",
+//                    DESERIALIZATION, receivedPacket.totalSize(),
+//                    END);
             // Handle Packet =======================================
             if(receivedPacket.getPacketType().equals(Packet.Type.SERVER_CONTROL)){
                 ServerIdentifier serverIdentifier = new ServerIdentifier();
@@ -93,9 +92,9 @@ public class NetRequestCompletionHandler extends AbstractWorkCompletionHandler {
                 // must free up this work request, so that it can be reused for RDMA communications
                 receiveProxy.releaseWorkRequest();
 
-                timeStampManager.createLowLevelTimeStamp("PacketDispatchToWorkQueue", receivedPacket.totalSize(), START);
+//                timeStampManager.createLowLevelTimeStamp("PacketDispatchToWorkQueue", receivedPacket.totalSize(), START);
                 connectionManager.onReceiveFromConnection(receivedPacket);
-                timeStampManager.createLowLevelTimeStamp("PacketDispatchToWorkQueue", receivedPacket.totalSize(), END);
+//                timeStampManager.createLowLevelTimeStamp("PacketDispatchToWorkQueue", receivedPacket.totalSize(), END);
             }
         }
     }
