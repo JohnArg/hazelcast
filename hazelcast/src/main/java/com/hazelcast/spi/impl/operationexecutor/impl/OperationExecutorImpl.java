@@ -384,6 +384,8 @@ public final class OperationExecutorImpl implements OperationExecutor, StaticMet
             genericQueue.add(task, priority);
         } else {
             OperationThread partitionThread = partitionThreads[toPartitionThreadIndex(partitionId)];
+//            long time = System.nanoTime();
+//            logger.info("[op executor] Add Packet Task Time : "+ time);
             partitionThread.queue.add(task, priority);
         }
     }

@@ -111,16 +111,22 @@ public abstract class OperationThread extends HazelcastManagedThread implements 
     @Override
     public final void executeRun() {
         nodeExtension.onThreadStart(this);
+        long thread_id = Thread.currentThread().getId();
         try {
             while (!shutdown) {
                 Object task;
                 try {
+                    long time = System.nanoTime();
+                    System.out.println("[op thread  : "+thread_id+"] before op. Queue size : "
+                            +queue.size()+". Time : "+time);
                     task = queue.take(priority);
                 } catch (InterruptedException e) {
                     continue;
                 }
 
                 process(task);
+//                logger.info("[op thread][id : "+thread_id+"] After task of type : "+task.getClass().getSimpleName()
+//                        +" + with queue size : "+queue.size());
             }
         } catch (Throwable t) {
             inspectOutOfMemoryError(t);

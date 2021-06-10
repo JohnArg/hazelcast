@@ -445,6 +445,8 @@ class OperationRunnerImpl extends OperationRunner implements StaticMetricsProvid
             setCallerUuidIfNotSet(caller, op);
             setOperationResponseHandler(op);
 
+            System.out.println("[op class] "+op.getClass().getSimpleName());
+
             if (!ensureValidMember(op)) {
                 return;
             }
