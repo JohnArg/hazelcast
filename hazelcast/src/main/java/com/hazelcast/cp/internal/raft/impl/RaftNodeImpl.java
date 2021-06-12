@@ -37,6 +37,7 @@ import com.hazelcast.cp.internal.raft.impl.persistence.RestoredRaftState;
 import com.hazelcast.cp.internal.raft.impl.state.*;
 import com.hazelcast.cp.internal.raft.impl.task.*;
 import com.hazelcast.cp.internal.raft.impl.util.PostponedResponse;
+import com.hazelcast.internal.networking.rdma.util.LatencyKeeper;
 import com.hazelcast.internal.server.benchmarks.timestamps.TimeStampManager;
 import com.hazelcast.internal.util.BiTuple;
 import com.hazelcast.internal.util.Clock;
@@ -101,6 +102,7 @@ public final class RaftNodeImpl implements RaftNode {
 
     // Latency benchmark related
     private TimeStampManager timeStampManager;
+    private LatencyKeeper latencyKeeper;
     private AtomicInteger rpcId;
 
     @SuppressWarnings("checkstyle:executablestatementcount")
@@ -136,6 +138,7 @@ public final class RaftNodeImpl implements RaftNode {
         // Latency benchmark related
         NodeEngineImpl nodeEngine = (NodeEngineImpl) raftIntegration.getNodeEngine();
         timeStampManager = nodeEngine.getTimeStampManager();
+        latencyKeeper = nodeEngine.getLatencyKeeper();
         rpcId = new AtomicInteger(1);
     }
 
@@ -398,6 +401,7 @@ public final class RaftNodeImpl implements RaftNode {
 //                    response.rpcId,
 //                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
 //        }
+        latencyKeeper.endLatencies.add(System.nanoTime());
         execute(new AppendSuccessResponseHandlerTask(this, response));
     }
 

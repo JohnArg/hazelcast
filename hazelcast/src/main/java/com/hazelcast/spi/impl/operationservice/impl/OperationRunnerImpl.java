@@ -426,7 +426,7 @@ class OperationRunnerImpl extends OperationRunner implements StaticMetricsProvid
             setOperationResponseHandler(op);
 
             if(op instanceof AppendSuccessResponseOp){
-                latencyKeeper.endLatencies.add(startNanos);
+                latencyKeeper.startLatencies.add(startNanos);
             }
 
             if (!ensureValidMember(op)) {

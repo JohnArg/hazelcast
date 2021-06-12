@@ -2,20 +2,16 @@ package com.hazelcast.internal.server.rdma.impl;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.cluster.Member;
-import com.hazelcast.cp.internal.operation.integration.AppendSuccessResponseOp;
 import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.networking.rdma.RdmaService;
 import com.hazelcast.internal.networking.rdma.RdmaServiceState;
-import com.hazelcast.internal.networking.rdma.util.LatencyKeeper;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.nio.PacketIOHelper;
-import com.hazelcast.internal.server.benchmarks.timestamps.TimeStampManager;
 import com.hazelcast.internal.server.rdma.RdmaConnectionManager;
 import com.hazelcast.internal.server.rdma.RdmaServer;
 import com.hazelcast.internal.server.rdma.RdmaServerConnection;
 import com.hazelcast.spi.impl.NodeEngine;
-import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.ibm.disni.RdmaActiveEndpointGroup;
 import com.ibm.disni.RdmaServerEndpoint;
 import discovery.client.DiscoveryClient;
@@ -76,8 +72,6 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
     private DiscoveryClient discoveryClient;
     private DiscoveryServiceProxy discoveryAPI;
     // Latency benchmark related
-    private TimeStampManager timeStampManager;
-    private LatencyKeeper latencyKeeper;
 
 
     public RdmaConnectionManagerImpl(NodeEngine engine,
@@ -186,8 +180,6 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
         if(!initializeRdmaCommunications()){
             return;
         }
-        timeStampManager = ((NodeEngineImpl) engine).getTimeStampManager();
-        latencyKeeper = ((NodeEngineImpl) engine).getLatencyKeeper();
         memberAcceptorThread.start();
         memberConnectorThread.start();
         // communications ready
@@ -343,10 +335,10 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
         // have. This helps in associating a timestamp with the RPC.
         // Do not use when benchmarking the network latency of RPCs.
         // Use only for measuring the time between dispatching the packet and executing the operation.
-        Object obj = engine.toObject(packet);
-        if(obj instanceof AppendSuccessResponseOp){
-            latencyKeeper.startLatencies.add(System.nanoTime());
-        }
+//        Object obj = engine.toObject(packet);
+//        if(obj instanceof AppendSuccessResponseOp){
+//            latencyKeeper.startLatencies.add(System.nanoTime());
+//        }
         // end of extra code ======================================================
         packetDispatcher.accept(packet);
     }
