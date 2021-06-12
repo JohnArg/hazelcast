@@ -26,43 +26,17 @@ import com.hazelcast.cp.internal.raft.QueryPolicy;
 import com.hazelcast.cp.internal.raft.command.DestroyRaftGroupCmd;
 import com.hazelcast.cp.internal.raft.command.RaftGroupCmd;
 import com.hazelcast.cp.internal.raft.impl.command.UpdateRaftGroupMembersCmd;
-import com.hazelcast.cp.internal.raft.impl.dto.AppendFailureResponse;
-import com.hazelcast.cp.internal.raft.impl.dto.AppendRequest;
-import com.hazelcast.cp.internal.raft.impl.dto.AppendSuccessResponse;
-import com.hazelcast.cp.internal.raft.impl.dto.InstallSnapshot;
-import com.hazelcast.cp.internal.raft.impl.dto.PreVoteRequest;
-import com.hazelcast.cp.internal.raft.impl.dto.PreVoteResponse;
-import com.hazelcast.cp.internal.raft.impl.dto.TriggerLeaderElection;
-import com.hazelcast.cp.internal.raft.impl.dto.VoteRequest;
-import com.hazelcast.cp.internal.raft.impl.dto.VoteResponse;
-import com.hazelcast.cp.internal.raft.impl.handler.AppendFailureResponseHandlerTask;
-import com.hazelcast.cp.internal.raft.impl.handler.AppendRequestHandlerTask;
-import com.hazelcast.cp.internal.raft.impl.handler.AppendSuccessResponseHandlerTask;
-import com.hazelcast.cp.internal.raft.impl.handler.InstallSnapshotHandlerTask;
-import com.hazelcast.cp.internal.raft.impl.handler.PreVoteRequestHandlerTask;
-import com.hazelcast.cp.internal.raft.impl.handler.PreVoteResponseHandlerTask;
-import com.hazelcast.cp.internal.raft.impl.handler.TriggerLeaderElectionHandlerTask;
-import com.hazelcast.cp.internal.raft.impl.handler.VoteRequestHandlerTask;
-import com.hazelcast.cp.internal.raft.impl.handler.VoteResponseHandlerTask;
+import com.hazelcast.cp.internal.raft.impl.dto.*;
+import com.hazelcast.cp.internal.raft.impl.handler.*;
 import com.hazelcast.cp.internal.raft.impl.log.LogEntry;
 import com.hazelcast.cp.internal.raft.impl.log.RaftLog;
 import com.hazelcast.cp.internal.raft.impl.log.SnapshotEntry;
 import com.hazelcast.cp.internal.raft.impl.persistence.NopRaftStateStore;
 import com.hazelcast.cp.internal.raft.impl.persistence.RaftStateStore;
 import com.hazelcast.cp.internal.raft.impl.persistence.RestoredRaftState;
-import com.hazelcast.cp.internal.raft.impl.state.FollowerState;
-import com.hazelcast.cp.internal.raft.impl.state.LeaderState;
-import com.hazelcast.cp.internal.raft.impl.state.QueryState;
-import com.hazelcast.cp.internal.raft.impl.state.RaftGroupMembers;
-import com.hazelcast.cp.internal.raft.impl.state.RaftState;
-import com.hazelcast.cp.internal.raft.impl.task.InitLeadershipTransferTask;
-import com.hazelcast.cp.internal.raft.impl.task.MembershipChangeTask;
-import com.hazelcast.cp.internal.raft.impl.task.PreVoteTask;
-import com.hazelcast.cp.internal.raft.impl.task.QueryTask;
-import com.hazelcast.cp.internal.raft.impl.task.RaftNodeStatusAwareTask;
-import com.hazelcast.cp.internal.raft.impl.task.ReplicateTask;
+import com.hazelcast.cp.internal.raft.impl.state.*;
+import com.hazelcast.cp.internal.raft.impl.task.*;
 import com.hazelcast.cp.internal.raft.impl.util.PostponedResponse;
-import com.hazelcast.internal.server.benchmarks.timestamps.RpcTimeStamp;
 import com.hazelcast.internal.server.benchmarks.timestamps.TimeStampManager;
 import com.hazelcast.internal.util.BiTuple;
 import com.hazelcast.internal.util.Clock;
@@ -82,12 +56,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-import static com.hazelcast.cp.internal.raft.impl.RaftNodeStatus.ACTIVE;
-import static com.hazelcast.cp.internal.raft.impl.RaftNodeStatus.INITIAL;
-import static com.hazelcast.cp.internal.raft.impl.RaftNodeStatus.STEPPED_DOWN;
-import static com.hazelcast.cp.internal.raft.impl.RaftNodeStatus.TERMINATED;
-import static com.hazelcast.cp.internal.raft.impl.RaftNodeStatus.TERMINATING;
-import static com.hazelcast.cp.internal.raft.impl.RaftNodeStatus.UPDATING_GROUP_MEMBER_LIST;
+import static com.hazelcast.cp.internal.raft.impl.RaftNodeStatus.*;
 import static com.hazelcast.cp.internal.raft.impl.RaftRole.FOLLOWER;
 import static com.hazelcast.cp.internal.raft.impl.RaftRole.LEADER;
 import static com.hazelcast.cp.internal.raft.impl.log.SnapshotEntry.isNonInitial;
@@ -414,31 +383,31 @@ public final class RaftNodeImpl implements RaftNode {
     @Override
     public void handleAppendRequest(AppendRequest request) {
         // this will be run by the followers
-        if(request.rpcId > 0){
-            timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
-                    request.rpcId,
-                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
-        }
+//        if(request.rpcId > 0){
+//            timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
+//                    request.rpcId,
+//                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
+//        }
         execute(new AppendRequestHandlerTask(this, request));
     }
 
     @Override
     public void handleAppendResponse(AppendSuccessResponse response) {
-        if(response.rpcId > 0){
-            timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
-                    response.rpcId,
-                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
-        }
+//        if(response.rpcId > 0){
+//            timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
+//                    response.rpcId,
+//                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
+//        }
         execute(new AppendSuccessResponseHandlerTask(this, response));
     }
 
     @Override
     public void handleAppendResponse(AppendFailureResponse response) {
-        if(response.rpcId > 0){
-            timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
-                    response.rpcId,
-                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
-        }
+//        if(response.rpcId > 0){
+//            timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
+//                    response.rpcId,
+//                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
+//        }
         execute(new AppendFailureResponseHandlerTask(this, response));
     }
 

@@ -23,15 +23,13 @@ import com.hazelcast.cluster.Member;
 import com.hazelcast.cluster.impl.MemberImpl;
 import com.hazelcast.core.HazelcastException;
 import com.hazelcast.core.HazelcastInstanceNotActiveException;
+import com.hazelcast.cp.internal.operation.integration.AppendSuccessResponseOp;
 import com.hazelcast.instance.impl.Node;
 import com.hazelcast.instance.impl.NodeState;
 import com.hazelcast.instance.impl.OutOfMemoryErrorDispatcher;
-import com.hazelcast.internal.metrics.ExcludedMetricTargets;
-import com.hazelcast.internal.metrics.MetricDescriptor;
-import com.hazelcast.internal.metrics.MetricsRegistry;
-import com.hazelcast.internal.metrics.Probe;
-import com.hazelcast.internal.metrics.StaticMetricsProvider;
+import com.hazelcast.internal.metrics.*;
 import com.hazelcast.internal.networking.rdma.RdmaService;
+import com.hazelcast.internal.networking.rdma.util.LatencyKeeper;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.partition.InternalPartition;
 import com.hazelcast.internal.partition.PartitionReplica;
@@ -44,21 +42,11 @@ import com.hazelcast.internal.util.counters.Counter;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.serialization.HazelcastSerializationException;
-import com.hazelcast.spi.exception.CallerNotMemberException;
-import com.hazelcast.spi.exception.PartitionMigratingException;
-import com.hazelcast.spi.exception.ResponseAlreadySentException;
-import com.hazelcast.spi.exception.RetryableException;
-import com.hazelcast.spi.exception.WrongTargetException;
+import com.hazelcast.spi.exception.*;
 import com.hazelcast.spi.impl.AllowedDuringPassiveState;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import com.hazelcast.spi.impl.operationexecutor.OperationRunner;
-import com.hazelcast.spi.impl.operationservice.BlockingOperation;
-import com.hazelcast.spi.impl.operationservice.CallStatus;
-import com.hazelcast.spi.impl.operationservice.Notifier;
-import com.hazelcast.spi.impl.operationservice.Offload;
-import com.hazelcast.spi.impl.operationservice.Operation;
-import com.hazelcast.spi.impl.operationservice.OperationResponseHandler;
-import com.hazelcast.spi.impl.operationservice.ReadonlyOperation;
+import com.hazelcast.spi.impl.operationservice.*;
 import com.hazelcast.spi.impl.operationservice.impl.operations.Backup;
 import com.hazelcast.spi.impl.operationservice.impl.operations.PartitionIteratingOperation;
 import com.hazelcast.spi.impl.operationservice.impl.responses.CallTimeoutResponse;
@@ -71,30 +59,18 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
-import static com.hazelcast.internal.metrics.MetricDescriptorConstants.OPERATION_DISCRIMINATOR_GENERICID;
-import static com.hazelcast.internal.metrics.MetricDescriptorConstants.OPERATION_DISCRIMINATOR_PARTITIONID;
-import static com.hazelcast.internal.metrics.MetricDescriptorConstants.OPERATION_METRIC_OPERATION_RUNNER_EXECUTED_OPERATIONS_COUNT;
-import static com.hazelcast.internal.metrics.MetricDescriptorConstants.OPERATION_PREFIX_ADHOC;
-import static com.hazelcast.internal.metrics.MetricDescriptorConstants.OPERATION_PREFIX_GENERIC;
-import static com.hazelcast.internal.metrics.MetricDescriptorConstants.OPERATION_PREFIX_PARTITION;
+import static com.hazelcast.internal.metrics.MetricDescriptorConstants.*;
 import static com.hazelcast.internal.metrics.MetricTarget.MANAGEMENT_CENTER;
 import static com.hazelcast.internal.metrics.ProbeLevel.DEBUG;
 import static com.hazelcast.internal.util.counters.MwCounter.newMwCounter;
 import static com.hazelcast.internal.util.counters.SwCounter.newSwCounter;
-import static com.hazelcast.spi.impl.operationservice.CallStatus.OFFLOAD_ORDINAL;
-import static com.hazelcast.spi.impl.operationservice.CallStatus.RESPONSE_ORDINAL;
-import static com.hazelcast.spi.impl.operationservice.CallStatus.VOID_ORDINAL;
-import static com.hazelcast.spi.impl.operationservice.CallStatus.WAIT_ORDINAL;
+import static com.hazelcast.spi.impl.operationservice.CallStatus.*;
 import static com.hazelcast.spi.impl.operationservice.OperationAccessor.setCallerAddress;
 import static com.hazelcast.spi.impl.operationservice.OperationAccessor.setConnection;
 import static com.hazelcast.spi.impl.operationservice.OperationResponseHandlerFactory.createEmptyResponseHandler;
-import static com.hazelcast.spi.impl.operationservice.Operations.isJoinOperation;
-import static com.hazelcast.spi.impl.operationservice.Operations.isMigrationOperation;
-import static com.hazelcast.spi.impl.operationservice.Operations.isWanReplicationOperation;
+import static com.hazelcast.spi.impl.operationservice.Operations.*;
 import static com.hazelcast.spi.properties.ClusterProperty.DISABLE_STALE_READ_ON_PARTITION_MIGRATION;
-import static java.util.logging.Level.FINEST;
-import static java.util.logging.Level.SEVERE;
-import static java.util.logging.Level.WARNING;
+import static java.util.logging.Level.*;
 
 /**
  * Responsible for processing an Operation.
@@ -129,6 +105,8 @@ class OperationRunnerImpl extends OperationRunner implements StaticMetricsProvid
     private final OutboundResponseHandler outboundResponseHandler;
 
     private final ConcurrentMap<Class, LatencyDistribution> opLatencyDistributions;
+    private NodeEngineImpl nodeEngineImpl;
+    private LatencyKeeper latencyKeeper;
 
     // When partitionId >= 0, it is a partition specific
     // when partitionId = -1, it is generic
@@ -147,6 +125,8 @@ class OperationRunnerImpl extends OperationRunner implements StaticMetricsProvid
         this.node = operationService.node;
         this.thisAddress = node.getThisAddress();
         this.nodeEngine = operationService.nodeEngine;
+        this.nodeEngineImpl = (NodeEngineImpl) nodeEngine;
+        this.latencyKeeper = nodeEngineImpl.getLatencyKeeper();
         this.rdmaService = nodeEngine.getRdmaService();
         this.outboundResponseHandler = operationService.outboundResponseHandler;
         this.staleReadOnMigrationEnabled = !node.getProperties().getBoolean(DISABLE_STALE_READ_ON_PARTITION_MIGRATION);
@@ -444,6 +424,10 @@ class OperationRunnerImpl extends OperationRunner implements StaticMetricsProvid
             setConnection(op, connection);
             setCallerUuidIfNotSet(caller, op);
             setOperationResponseHandler(op);
+
+            if(op instanceof AppendSuccessResponseOp){
+                latencyKeeper.endLatencies.add(startNanos);
+            }
 
             if (!ensureValidMember(op)) {
                 return;

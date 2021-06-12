@@ -40,6 +40,7 @@ import com.hazelcast.internal.metrics.metricsets.RuntimeMetricSet;
 import com.hazelcast.internal.metrics.metricsets.ThreadMetricSet;
 import com.hazelcast.internal.networking.rdma.RdmaService;
 import com.hazelcast.internal.networking.rdma.impl.RdmaServiceImpl;
+import com.hazelcast.internal.networking.rdma.util.LatencyKeeper;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.partition.InternalPartitionService;
 import com.hazelcast.internal.partition.MigrationInfo;
@@ -81,6 +82,7 @@ import com.hazelcast.version.MemberVersion;
 import com.hazelcast.wan.impl.WanReplicationService;
 
 import javax.annotation.Nonnull;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.UUID;
@@ -130,16 +132,20 @@ public class NodeEngineImpl implements NodeEngine {
 
     // Latency benchmark related - Kept in this class to be accessible by others =======
     private TimeStampManager timeStampManager;
+    private LatencyKeeper latencyKeeper;
     // Keep the last part of the local member's TCP address here
     private String localNodeId;
     private String rpcTimeStampFileName;
     private String serializationTimestampFileName;
     private String lowLevelTimestampFileName;
 
+
     @SuppressWarnings("checkstyle:executablestatementcount")
     public NodeEngineImpl(Node node) {
         this.node = node;
         try {
+            this.latencyKeeper = new LatencyKeeper();
+
             this.serializationService = node.getSerializationService();
             this.concurrencyDetection = newConcurrencyDetection();
             this.loggingService = node.loggingService;
@@ -554,9 +560,16 @@ public class NodeEngineImpl implements NodeEngine {
         }
 
         // export latency results
-        timeStampManager.export(rpcTimeStampFileName, TimeStampManager.TimeStampType.RPC);
-        timeStampManager.export(serializationTimestampFileName, TimeStampManager.TimeStampType.SERIALIZATION);
-        timeStampManager.export(lowLevelTimestampFileName, TimeStampManager.TimeStampType.LOW_LEVEL);
+//        timeStampManager.export(rpcTimeStampFileName, TimeStampManager.TimeStampType.RPC);
+//        timeStampManager.export(serializationTimestampFileName, TimeStampManager.TimeStampType.SERIALIZATION);
+//        timeStampManager.export(lowLevelTimestampFileName, TimeStampManager.TimeStampType.LOW_LEVEL);
+        String nodeAddress = "";
+        try {
+            nodeAddress = node.getLocalMember().getAddress().getInetSocketAddress().getHostName();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        latencyKeeper.exportData(nodeAddress+"_latencies.dat");
     }
 
     // has to be public, it's used by Jet
@@ -584,4 +597,9 @@ public class NodeEngineImpl implements NodeEngine {
     public void setTimeStampManager(TimeStampManager timeStampManager) {
         this.timeStampManager = timeStampManager;
     }
+
+    public LatencyKeeper getLatencyKeeper() {
+        return latencyKeeper;
+    }
+
 }

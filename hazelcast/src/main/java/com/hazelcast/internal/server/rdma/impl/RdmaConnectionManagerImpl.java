@@ -2,16 +2,14 @@ package com.hazelcast.internal.server.rdma.impl;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.cluster.Member;
-import com.hazelcast.cp.internal.operation.integration.AppendFailureResponseOp;
-import com.hazelcast.cp.internal.operation.integration.AppendRequestOp;
 import com.hazelcast.cp.internal.operation.integration.AppendSuccessResponseOp;
 import com.hazelcast.internal.networking.rdma.RdmaConfig;
 import com.hazelcast.internal.networking.rdma.RdmaService;
 import com.hazelcast.internal.networking.rdma.RdmaServiceState;
+import com.hazelcast.internal.networking.rdma.util.LatencyKeeper;
 import com.hazelcast.internal.networking.rdma.util.RdmaLogger;
 import com.hazelcast.internal.nio.Packet;
 import com.hazelcast.internal.nio.PacketIOHelper;
-import com.hazelcast.internal.server.benchmarks.timestamps.RpcTimeStamp;
 import com.hazelcast.internal.server.benchmarks.timestamps.TimeStampManager;
 import com.hazelcast.internal.server.rdma.RdmaConnectionManager;
 import com.hazelcast.internal.server.rdma.RdmaServer;
@@ -79,6 +77,7 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
     private DiscoveryServiceProxy discoveryAPI;
     // Latency benchmark related
     private TimeStampManager timeStampManager;
+    private LatencyKeeper latencyKeeper;
 
 
     public RdmaConnectionManagerImpl(NodeEngine engine,
@@ -188,6 +187,7 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
             return;
         }
         timeStampManager = ((NodeEngineImpl) engine).getTimeStampManager();
+        latencyKeeper = ((NodeEngineImpl) engine).getLatencyKeeper();
         memberAcceptorThread.start();
         memberConnectorThread.start();
         // communications ready
@@ -344,25 +344,8 @@ public class RdmaConnectionManagerImpl implements RdmaConnectionManager<ActiveRd
         // Do not use when benchmarking the network latency of RPCs.
         // Use only for measuring the time between dispatching the packet and executing the operation.
         Object obj = engine.toObject(packet);
-        try{
-            if(obj instanceof AppendRequestOp){
-                int rpcId = ((AppendRequestOp) obj).getRpcId();
-                timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Request",
-                        rpcId,
-                        RpcTimeStamp.TimeStampCreatorType.SENDER);
-            }else if(obj instanceof AppendSuccessResponseOp){
-                int rpcId = ((AppendSuccessResponseOp) obj).getRpcId();
-                timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Response",
-                        rpcId,
-                        RpcTimeStamp.TimeStampCreatorType.SENDER);
-            }else if(obj instanceof AppendFailureResponseOp){
-                int rpcId = ((AppendFailureResponseOp) obj).getRpcId();
-                timeStampManager.createRpcTimeStamp("PacketProcessing", "Append_Response",
-                        rpcId,
-                        RpcTimeStamp.TimeStampCreatorType.SENDER);
-            }
-        }catch (ClassCastException e){
-            logger.severe("[RDMA] Cannot cast to class", e);
+        if(obj instanceof AppendSuccessResponseOp){
+            latencyKeeper.startLatencies.add(System.nanoTime());
         }
         // end of extra code ======================================================
         packetDispatcher.accept(packet);
