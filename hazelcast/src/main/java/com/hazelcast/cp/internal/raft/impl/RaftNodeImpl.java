@@ -401,7 +401,11 @@ public final class RaftNodeImpl implements RaftNode {
 //                    response.rpcId,
 //                    RpcTimeStamp.TimeStampCreatorType.RECEIVER);
 //        }
-        latencyKeeper.endLatencies.add(System.nanoTime());
+        if(response.rpcId > 0){
+            latencyKeeper.startLatencies.add(System.nanoTime());
+            execute(new AppendSuccessResponseHandlerTask(this, response));
+            latencyKeeper.endLatencies.add(System.nanoTime());
+        }
         execute(new AppendSuccessResponseHandlerTask(this, response));
     }
 

@@ -23,7 +23,6 @@ import com.hazelcast.cluster.Member;
 import com.hazelcast.cluster.impl.MemberImpl;
 import com.hazelcast.core.HazelcastException;
 import com.hazelcast.core.HazelcastInstanceNotActiveException;
-import com.hazelcast.cp.internal.operation.integration.AppendSuccessResponseOp;
 import com.hazelcast.instance.impl.Node;
 import com.hazelcast.instance.impl.NodeState;
 import com.hazelcast.instance.impl.OutOfMemoryErrorDispatcher;
@@ -424,10 +423,6 @@ class OperationRunnerImpl extends OperationRunner implements StaticMetricsProvid
             setConnection(op, connection);
             setCallerUuidIfNotSet(caller, op);
             setOperationResponseHandler(op);
-
-            if(op instanceof AppendSuccessResponseOp){
-                latencyKeeper.startLatencies.add(startNanos);
-            }
 
             if (!ensureValidMember(op)) {
                 return;
